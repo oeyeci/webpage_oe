@@ -1,0 +1,28 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import ContactsInbox from '../../components/admin/ContactsInbox';
+import { getDb } from '../../lib/context';
+import { listContacts } from '../../lib/repositories/contacts';
+
+const db = getDb();
+const { items, total, unread } = await listContacts(db, { limit: 200 });
+
+const initial = items.map((contact) => ({
+  id: contact.id,
+  name: contact.name,
+  email: contact.email,
+  subject: contact.subject,
+  message: contact.message,
+  status: contact.status,
+  country: contact.country,
+  createdAt: contact.createdAt.toISOString(),
+}));
+---
+
+<AdminLayout
+  title="Messages"
+  description={`${total} total${unread > 0 ? ` · ${unread} unread` : ''}`}
+  wide
+>
+  <ContactsInbox initial={initial} client:load />
+</AdminLayout>

@@ -1,0 +1,357 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/ui/Section.astro';
+import MediaImage from '../components/ui/MediaImage.astro';
+import PublicationCard from '../components/publications/PublicationCard.astro';
+import CopyCitation from '../components/publications/CopyCitation.astro';
+import { getDb } from '../lib/context';
+import { getAboutPageData } from '../lib/repositories/about';
+import { getFeaturedPublications, getPublicationStats } from '../lib/repositories/publications';
+import { listPosts } from '../lib/repositories/blog';
+import { listActivities } from '../lib/repositories/activities';
+import { listFeaturedSkills } from '../lib/repositories/skills';
+import { getSettings } from '../lib/repositories/settings';
+import { listExperiences, yearsSince } from '../lib/repositories/experiences';
+import { formatLongDate, formatMonthYear } from '../lib/utils/date';
+import { socialLinks } from '../lib/site';
+
+const db = getDb();
+
+const [about, featured, stats, posts, activities, skills, settings, positions] = await Promise.all([
+  getAboutPageData(db),
+  getFeaturedPublications(db, 3),
+  getPublicationStats(db),
+  listPosts(db, { limit: 3 }),
+  listActivities(db, { limit: 3 }),
+  listFeaturedSkills(db, 10),
+  getSettings(db),
+  listExperiences(db),
+]);
+
+const { profile, interests, slots } = about;
+const portrait = slots.get('about.portrait');
+const socials = profile ? socialLinks(profile) : [];
+const currentRole = positions.find((p) => p.isCurrent);
+const activeYears = yearsSince(positions);
+
+const counters = [
+  { value: stats.total, label: 'Publications' },
+  { value: stats.byCategory.journal, label: 'Journal papers' },
+  { value: stats.byCategory.conference, label: 'Conference papers' },
+  { value: stats.coAuthors, label: 'Co-authors' },
+  ...(activeYears > 0 ? [{ value: activeYears, label: 'Years in academia' }] : []),
+];
+---
+
+<BaseLayout
+  title={settings['site.title']}
+  description={profile?.summary ?? settings['site.description']}
+  type="profile"
+>
+  {/* ═══ Hero ═══════════════════════════════════════════════════════════ */}
+  <section class="relative overflow-hidden">
+    {/* Ambient wash. Purely decorative: hidden from assistive tech, behind the
+        content, and non-interactive. */}
+    <div
+      class="pointer-events-none absolute inset-0 -z-10 opacity-70"
+      aria-hidden="true"
+      style="background: radial-gradient(60rem 30rem at 70% -10%, var(--accent-soft), transparent 60%);"
+    >
+    </div>
+
+    <div class="container-page pt-20 pb-16 md:pt-28 md:pb-24">
+      <div class="grid items-center gap-12 lg:grid-cols-[1.35fr_1fr] lg:gap-16">
+        <div>
+          {
+            currentRole && (
+              <p class="reveal eyebrow">
+                {currentRole.title} · {currentRole.organization}
+              </p>
+            )
+          }
+
+          <h1
+            class="reveal mt-4 text-[2.5rem] leading-[1.08] tracking-[-0.028em] md:text-[3.5rem] md:leading-[1.05]"
+          >
+            {profile?.fullName ?? 'Önder Eyecioğlu'}
+          </h1>
+
+          {
+            profile?.tagline && (
+              <p class="reveal mt-6 max-w-xl text-lg leading-relaxed text-ink-muted md:text-xl">
+                {profile.tagline}
+              </p>
+            )
+          }
+
+          <div class="reveal mt-8 flex flex-wrap gap-3">
+            <a href="/publications" class="btn btn-primary">
+              View publications
+              <svg
+                class="size-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M5 12h14M13 6l6 6-6 6"></path>
+              </svg>
+            </a>
+            <a href="/contact" class="btn btn-secondary">Get in touch</a>
+          </div>
+
+          {
+            socials.length > 0 && (
+              <ul class="reveal mt-8 flex flex-wrap gap-2">
+                {socials.map((social) => (
+                  <li>
+                    <a
+                      href={social.href}
+                      class="chip transition-colors hover:border-accent hover:text-accent"
+                      target={social.href.startsWith('mailto:') ? undefined : '_blank'}
+                      rel={
+                        social.href.startsWith('mailto:') ? undefined : 'me noopener noreferrer'
+                      }
+                    >
+                      {social.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )
+          }
+        </div>
+
+        {
+          portrait?.media && (
+            <div class="reveal relative mx-auto w-full max-w-sm lg:mx-0">
+              <div
+                class="absolute -inset-3 -z-10 rounded-[1.75rem] bg-accent-soft blur-2xl"
+                aria-hidden="true"
+              />
+              <MediaImage
+                media={portrait.media}
+                alt={portrait.media.alt || `Portrait of ${profile?.fullName ?? ''}`}
+                priority
+                sizes="(min-width: 1024px) 24rem, 100vw"
+                class="aspect-4/5 w-full rounded-3xl border border-line object-cover shadow-float"
+              />
+            </div>
+          )
+        }
+      </div>
+    </div>
+  </section>
+
+  {/* ═══ Counters ═══════════════════════════════════════════════════════ */}
+  {
+    stats.total > 0 && (
+      <div class="border-y border-line bg-surface">
+        <div class="container-page">
+          <dl class="grid grid-cols-2 divide-line md:grid-cols-3 lg:grid-cols-5 lg:divide-x">
+            {counters.map((counter) => (
+              <div class="reveal flex flex-col px-2 py-7 text-center">
+                <dd class="font-serif text-3xl font-semibold tabular-nums md:text-4xl">
+                  {counter.value}
+                </dd>
+                <dt class="mt-1 text-xs font-medium uppercase tracking-wider text-ink-subtle">
+                  {counter.label}
+                </dt>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+    )
+  }
+
+  {/* ═══ Research interests ═════════════════════════════════════════════ */}
+  {
+    interests.length > 0 && (
+      <Section
+        eyebrow="Research"
+        title="Where my work is focused"
+        lead="Quantum machine learning, intelligent energy systems, and the computational physics of materials."
+        action={{ label: 'Read more about me', href: '/about' }}
+      >
+        <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {interests.slice(0, 6).map((interest) => (
+            <li class="reveal card card-interactive p-6">
+              <h3 class="text-lg leading-snug">{interest.title}</h3>
+              {interest.description && (
+                <p class="mt-2.5 text-sm leading-relaxed text-ink-muted">{interest.description}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </Section>
+    )
+  }
+
+  {/* ═══ Selected publications ══════════════════════════════════════════ */}
+  {
+    featured.length > 0 && (
+      <Section
+        eyebrow="Publications"
+        title="Selected work"
+        action={{ label: 'All publications', href: '/publications' }}
+        class="bg-surface"
+      >
+        <div class="grid gap-4 lg:grid-cols-3">
+          {featured.map((publication) => (
+            <PublicationCard
+              publication={publication}
+              showCitations={settings['publications.showCitationCounts']}
+            />
+          ))}
+        </div>
+      </Section>
+    )
+  }
+
+  {/* ═══ Latest posts ═══════════════════════════════════════════════════ */}
+  {
+    settings['home.showBlog'] && posts.items.length > 0 && (
+      <Section
+        eyebrow="Writing"
+        title="Latest from the blog"
+        action={{ label: 'All posts', href: '/blog' }}
+      >
+        <div class="grid gap-5 md:grid-cols-3">
+          {posts.items.map((post) => (
+            <article class="reveal card card-interactive group overflow-hidden">
+              <a href={`/blog/${post.slug}`} class="block">
+                {post.cover ? (
+                  <MediaImage
+                    media={post.cover}
+                    thumb
+                    sizes="(min-width: 768px) 22rem, 100vw"
+                    class="aspect-video w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                ) : (
+                  <div class="aspect-video w-full bg-surface-2" aria-hidden="true" />
+                )}
+
+                <div class="p-5">
+                  <div class="flex flex-wrap items-center gap-2 text-xs text-ink-subtle">
+                    {post.category && (
+                      <span class="chip !py-0.5 !text-xs">{post.category.name}</span>
+                    )}
+                    <span>{post.readingMinutes} min read</span>
+                  </div>
+
+                  <h3 class="mt-3 text-lg leading-snug transition-colors group-hover:text-accent">
+                    {post.title}
+                  </h3>
+
+                  {post.excerpt && (
+                    <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted">
+                      {post.excerpt}
+                    </p>
+                  )}
+
+                  {post.publishedAt && (
+                    <time
+                      datetime={post.publishedAt.toISOString()}
+                      class="mt-3 block text-xs text-ink-subtle"
+                    >
+                      {formatLongDate(post.publishedAt)}
+                    </time>
+                  )}
+                </div>
+              </a>
+            </article>
+          ))}
+        </div>
+      </Section>
+    )
+  }
+
+  {/* ═══ Recent activities ══════════════════════════════════════════════ */}
+  {
+    settings['home.showActivities'] && activities.length > 0 && (
+      <Section
+        eyebrow="Activities"
+        title="Recently"
+        action={{ label: 'All activities', href: '/activities' }}
+        class="bg-surface"
+      >
+        <ul class="grid gap-4 md:grid-cols-3">
+          {activities.map((activity) => (
+            <li class="reveal card card-interactive group p-5">
+              <p class="font-mono text-xs text-ink-subtle">
+                {formatMonthYear(activity.activityDate)}
+              </p>
+              <h3 class="mt-1.5 text-base leading-snug">
+                <a
+                  href={`/activities/${activity.slug}`}
+                  class="transition-colors group-hover:text-accent"
+                >
+                  {activity.title}
+                </a>
+              </h3>
+              {activity.location && (
+                <p class="mt-1 truncate text-sm text-ink-muted">{activity.location}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </Section>
+    )
+  }
+
+  {/* ═══ Skills ═════════════════════════════════════════════════════════ */}
+  {
+    skills.length > 0 && (
+      <Section
+        eyebrow="Toolkit"
+        title="Technologies I work with"
+        action={{ label: 'All skills', href: '/skills' }}
+      >
+        <ul class="reveal flex flex-wrap gap-2">
+          {skills.map((skill) => (
+            <li class="chip !px-3.5 !py-1.5 !text-sm">{skill.name}</li>
+          ))}
+        </ul>
+      </Section>
+    )
+  }
+
+  {/* ═══ Contact CTA ════════════════════════════════════════════════════ */}
+  <Section class="!pb-24">
+    <div class="reveal card relative overflow-hidden px-6 py-14 text-center md:px-12 md:py-20">
+      <div
+        class="pointer-events-none absolute inset-0 -z-10"
+        aria-hidden="true"
+        style="background: radial-gradient(40rem 20rem at 50% 0%, var(--accent-soft), transparent 70%);"
+      >
+      </div>
+
+      <h2 class="text-3xl md:text-4xl">Let&rsquo;s work together</h2>
+      <p class="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-muted md:text-lg">
+        Open to research collaborations, graduate supervision, peer review and speaking
+        invitations.
+      </p>
+      <div class="mt-8 flex flex-wrap justify-center gap-3">
+        <a href="/contact" class="btn btn-primary">Contact me</a>
+        {
+          profile?.googleScholar && (
+            <a
+              href={profile.googleScholar}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-secondary"
+            >
+              Google Scholar
+            </a>
+          )
+        }
+      </div>
+    </div>
+  </Section>
+
+  <CopyCitation />
+</BaseLayout>

@@ -1,0 +1,96 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb, getEnv } from '../../../lib/context';
+import { listActivities } from '../../../lib/repositories/activities';
+import { formatLongDate } from '../../../lib/utils/date';
+import { mediaUrl } from '../../../lib/storage/r2';
+
+const db = getDb();
+const env = getEnv();
+
+const activities = await listActivities(db, { includeUnpublished: true });
+---
+
+<AdminLayout title="Activities" description={`${activities.length} entries`} wide>
+  <a slot="actions" href="/admin/activities/new" class="btn btn-primary shrink-0">New activity</a>
+
+  {
+    activities.length === 0 ? (
+      <div class="card py-16 text-center">
+        <p class="text-sm text-ink-muted">No activities yet.</p>
+        <a href="/admin/activities/new" class="btn btn-secondary mt-5">
+          Add the first one
+        </a>
+      </div>
+    ) : (
+      <ul class="space-y-2">
+        {activities.map((activity) => (
+          <li class="card flex flex-wrap items-center gap-4 p-4">
+            {activity.cover ? (
+              <img
+                src={mediaUrl(activity.cover.thumbKey ?? activity.cover.r2Key, env.MEDIA_PUBLIC_BASE)}
+                alt={activity.cover.alt}
+                width="80"
+                height="56"
+                class="h-14 w-20 shrink-0 rounded-md border border-line object-cover"
+              />
+            ) : (
+              <div class="h-14 w-20 shrink-0 rounded-md bg-surface-2" aria-hidden="true" />
+            )}
+
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                {!activity.isPublished && (
+                  <span class="inline-flex items-center rounded-full border border-warning/30 px-2 py-0.5 text-xs font-medium text-warning">
+                    hidden
+                  </span>
+                )}
+                {activity.isFeatured && (
+                  <span class="inline-flex items-center rounded-full border border-transparent bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent">
+                    featured
+                  </span>
+                )}
+                {activity.category && (
+                  <span class="inline-flex items-center rounded-full border border-line px-2 py-0.5 text-xs font-medium text-ink-muted">
+                    {activity.category.name}
+                  </span>
+                )}
+              </div>
+
+              <h3 class="mt-1.5 truncate font-medium">{activity.title}</h3>
+              <p class="mt-0.5 truncate text-xs text-ink-subtle">
+                {formatLongDate(activity.activityDate)}
+                {activity.location && ` · ${activity.location}`}
+              </p>
+            </div>
+
+            <div class="flex shrink-0 gap-1">
+              <a
+                href={`/activities/${activity.slug}`}
+                target="_blank"
+                rel="noopener"
+                class="btn btn-ghost !px-3 !text-xs"
+              >
+                View
+              </a>
+              <a
+                href={`/admin/activities/${activity.id}`}
+                class="btn btn-secondary !px-3 !text-xs"
+              >
+                Edit
+              </a>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <div class="mt-8 rounded-xl border border-line bg-surface p-5">
+    <h2 class="text-sm font-semibold">Categories</h2>
+    <p class="mt-1 text-sm text-ink-muted">
+      Activity categories are managed alongside the other taxonomies — see
+      <a href="/admin/settings" class="text-accent hover:underline">Settings</a>.
+    </p>
+  </div>
+</AdminLayout>

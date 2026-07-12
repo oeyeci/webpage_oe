@@ -1,0 +1,28 @@
+# ---------------------------------------------------------------------------
+# Local development secrets.
+#
+#   cp .dev.vars.example .dev.vars
+#
+# Wrangler loads `.dev.vars` automatically during `astro dev` / `wrangler dev`.
+# In production these are set as encrypted secrets:
+#
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put TURNSTILE_SECRET_KEY
+#   wrangler secret put RESEND_API_KEY
+#
+# `.dev.vars` is git-ignored. NEVER commit real values.
+# ---------------------------------------------------------------------------
+
+# Signing key for admin session JWTs (HMAC-SHA256).
+# Generate one with:  node -e "console.log(crypto.randomUUID()+crypto.randomUUID())"
+# or:                 openssl rand -base64 48
+JWT_SECRET="dev-only-insecure-secret-change-me-in-production-min-32-chars"
+
+# Cloudflare Turnstile — https://dash.cloudflare.com/?to=/:account/turnstile
+# The keys below are Cloudflare's official *test* keys: they always pass.
+TURNSTILE_SECRET_KEY="1x0000000000000000000000000000000AA"
+
+# Transactional email for contact-form notifications (https://resend.com).
+# Leave blank to disable outbound email — submissions are still stored in D1
+# and shown in the admin panel.
+RESEND_API_KEY=""

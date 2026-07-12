@@ -1,0 +1,46 @@
+---
+/**
+ * Delegated click handler for every "Cite" button on the page.
+ *
+ * One document-level listener rather than one per card: a publications page can
+ * render 90+ cards, and 90 listeners for a button that is clicked once (if ever)
+ * is exactly the kind of waste that adds up to a slow page.
+ *
+ * Drop this component once anywhere a `PublicationCard` is rendered.
+ */
+---
+
+<script is:inline>
+  document.addEventListener('click', async (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const button = target.closest('.js-copy-citation');
+    if (!(button instanceof HTMLElement)) return;
+
+    const citation = button.dataset.citation ?? '';
+    const label = button.dataset.label ?? 'Cite';
+    // The button's first child is the visible text node; the rest is sr-only.
+    const textNode = button.firstChild;
+
+    const flash = (message) => {
+      if (!textNode) return;
+      textNode.textContent = message;
+      setTimeout(() => {
+        textNode.textContent = label;
+      }, 1600);
+    };
+
+    try {
+      await navigator.clipboard.writeText(citation);
+      flash('Copied');
+    } catch {
+      // Clipboard permission can be denied (or unavailable over plain HTTP).
+      // Expand the reference instead of leaving a button that silently does
+      // nothing — the reader can then select and copy it themselves.
+      const details = button.closest('article')?.querySelector('details');
+      if (details instanceof HTMLDetailsElement) details.open = true;
+      flash('Select below');
+    }
+  });
+</script>

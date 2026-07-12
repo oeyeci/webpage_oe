@@ -1,0 +1,311 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/ui/PageHeader.astro';
+import EmptyState from '../../components/ui/EmptyState.astro';
+import MediaImage from '../../components/ui/MediaImage.astro';
+import { getDb, getEnv } from '../../lib/context';
+import { listCategories, listPosts, listTags } from '../../lib/repositories/blog';
+import { getSettings } from '../../lib/repositories/settings';
+import { breadcrumbSchema } from '../../lib/seo';
+import { formatLongDate } from '../../lib/utils/date';
+
+const db = getDb();
+const env = getEnv();
+
+const url = Astro.url;
+const page = Math.max(1, Number(url.searchParams.get('page') ?? '1') || 1);
+const categorySlug = url.searchParams.get('category') ?? undefined;
+const tagSlug = url.searchParams.get('tag') ?? undefined;
+const search = url.searchParams.get('q') ?? undefined;
+
+const settings = await getSettings(db);
+const perPage = settings['blog.postsPerPage'];
+
+const [{ items: posts, total }, categories, tags] = await Promise.all([
+  listPosts(db, {
+    categorySlug,
+    tagSlug,
+    search,
+    limit: perPage,
+    offset: (page - 1) * perPage,
+  }),
+  listCategories(db),
+  listTags(db),
+]);
+
+const totalPages = Math.max(1, Math.ceil(total / perPage));
+const activeCategory = categories.find((c) => c.slug === categorySlug);
+const activeTag = tags.find((t) => t.slug === tagSlug);
+
+/** Rebuilds the query string with one parameter changed. Page always resets. */
+const buildHref = (patch: Record<string, string | undefined>) => {
+  const params = new URLSearchParams();
+  const merged = { category: categorySlug, tag: tagSlug, q: search, ...patch };
+
+  for (const [key, value] of Object.entries(merged)) {
+    if (value) params.set(key, value);
+  }
+  const query = params.toString();
+  return query ? `/blog?${query}` : '/blog';
+};
+
+const pageHref = (target: number) => {
+  const params = new URLSearchParams();
+  if (categorySlug) params.set('category', categorySlug);
+  if (tagSlug) params.set('tag', tagSlug);
+  if (search) params.set('q', search);
+  if (target > 1) params.set('page', String(target));
+  const query = params.toString();
+  return query ? `/blog?${query}` : '/blog';
+};
+
+const isFiltered = Boolean(categorySlug || tagSlug || search);
+---
+
+<BaseLayout
+  title={activeCategory ? `${activeCategory.name} — Blog` : 'Blog'}
+  description="Notes on quantum machine learning, smart grids, scientific computing and academic life."
+  schemas={[
+    breadcrumbSchema(
+      [
+        { name: 'Home', url: '/' },
+        { name: 'Blog', url: '/blog' },
+      ],
+      env.PUBLIC_SITE_URL,
+    ),
+  ]}
+>
+  <PageHeader
+    eyebrow="Writing"
+    title={activeCategory ? activeCategory.name : 'Blog'}
+    lead={activeCategory?.description ??
+      'Notes on quantum machine learning, intelligent energy systems, scientific computing, and life inside the university.'}
+  />
+
+  <div class="container-page pb-24">
+    {/* ═══ Filters ══════════════════════════════════════════════════════ */}
+    <div class="reveal flex flex-col gap-4 border-b border-line pb-6 lg:flex-row lg:items-center lg:justify-between">
+      {/* A real GET form: it works with JavaScript disabled, and the URL that
+          results is shareable and back-button friendly. */}
+      <form method="get" action="/blog" role="search" class="relative lg:w-80">
+        <label for="blog-search" class="sr-only">Search posts</label>
+        <svg
+          class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-subtle"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input
+          type="search"
+          id="blog-search"
+          name="q"
+          value={search ?? ''}
+          class="input !py-2 !pl-9 !text-sm"
+          placeholder="Search posts…"
+        />
+        {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
+        {tagSlug && <input type="hidden" name="tag" value={tagSlug} />}
+        <button type="submit" class="sr-only">Search</button>
+      </form>
+
+      {
+        categories.length > 0 && (
+          <nav aria-label="Post categories">
+            <ul class="flex flex-wrap gap-1.5">
+              <li>
+                <a
+                  href={buildHref({ category: undefined })}
+                  aria-current={!categorySlug ? 'true' : undefined}
+                  class="chip transition-colors hover:border-accent hover:text-accent aria-[current]:border-transparent aria-[current]:bg-accent aria-[current]:text-white dark:aria-[current]:text-[#0b0c0f]"
+                >
+                  All
+                </a>
+              </li>
+              {categories
+                .filter((category) => category.postCount > 0)
+                .map((category) => (
+                  <li>
+                    <a
+                      href={buildHref({ category: category.slug })}
+                      aria-current={categorySlug === category.slug ? 'true' : undefined}
+                      class="chip transition-colors hover:border-accent hover:text-accent aria-[current]:border-transparent aria-[current]:bg-accent aria-[current]:text-white dark:aria-[current]:text-[#0b0c0f]"
+                    >
+                      {category.name}
+                      <span class="tabular-nums opacity-60">{category.postCount}</span>
+                    </a>
+                  </li>
+                ))}
+            </ul>
+          </nav>
+        )
+      }
+    </div>
+
+    {
+      isFiltered && (
+        <p class="mt-5 flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+          <span>
+            {total} {total === 1 ? 'post' : 'posts'}
+            {search && (
+              <>
+                {' '}
+                matching <strong class="text-ink">“{search}”</strong>
+              </>
+            )}
+            {activeTag && (
+              <>
+                {' '}
+                tagged <strong class="text-ink">{activeTag.name}</strong>
+              </>
+            )}
+          </span>
+          <a href="/blog" class="text-accent hover:underline">
+            Clear filters
+          </a>
+        </p>
+      )
+    }
+
+    {/* ═══ Posts ════════════════════════════════════════════════════════ */}
+    {
+      posts.length === 0 ? (
+        <div class="mt-10">
+          <EmptyState
+            title={isFiltered ? 'No matching posts' : 'No posts yet'}
+            description={
+              isFiltered
+                ? 'Try a different search term or category.'
+                : 'The first post will appear here soon.'
+            }
+            action={isFiltered ? { label: 'Clear filters', href: '/blog' } : undefined}
+          />
+        </div>
+      ) : (
+        <div class="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {posts.map((post, index) => (
+            <article class="reveal card card-interactive group flex flex-col overflow-hidden">
+              <a href={`/blog/${post.slug}`} class="flex h-full flex-col">
+                {post.cover ? (
+                  <MediaImage
+                    media={post.cover}
+                    thumb={index > 2}
+                    priority={index === 0}
+                    sizes="(min-width: 1024px) 22rem, (min-width: 768px) 45vw, 100vw"
+                    class="aspect-video w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                ) : (
+                  <div class="aspect-video w-full bg-surface-2" aria-hidden="true" />
+                )}
+
+                <div class="flex flex-1 flex-col p-5">
+                  <div class="flex flex-wrap items-center gap-2 text-xs text-ink-subtle">
+                    {post.category && (
+                      <span class="chip !py-0.5 !text-xs">{post.category.name}</span>
+                    )}
+                    {post.isFeatured && (
+                      <span class="chip chip-accent !py-0.5 !text-xs">Featured</span>
+                    )}
+                    <span>{post.readingMinutes} min read</span>
+                  </div>
+
+                  <h2 class="mt-3 text-lg leading-snug transition-colors group-hover:text-accent">
+                    {post.title}
+                  </h2>
+
+                  {post.excerpt && (
+                    <p class="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-ink-muted">
+                      {post.excerpt}
+                    </p>
+                  )}
+
+                  {post.publishedAt && (
+                    <time
+                      datetime={post.publishedAt.toISOString()}
+                      class="mt-4 block text-xs text-ink-subtle"
+                    >
+                      {formatLongDate(post.publishedAt)}
+                    </time>
+                  )}
+                </div>
+              </a>
+            </article>
+          ))}
+        </div>
+      )
+    }
+
+    {/* ═══ Pagination ═══════════════════════════════════════════════════ */}
+    {
+      totalPages > 1 && (
+        <nav aria-label="Pagination" class="mt-14 flex items-center justify-center gap-2">
+          <a
+            href={pageHref(page - 1)}
+            class:list={['btn btn-secondary', page === 1 && 'pointer-events-none opacity-40']}
+            aria-disabled={page === 1 ? 'true' : undefined}
+            tabindex={page === 1 ? -1 : undefined}
+          >
+            Previous
+          </a>
+
+          <ul class="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+              <li>
+                <a
+                  href={pageHref(n)}
+                  aria-current={n === page ? 'page' : undefined}
+                  aria-label={`Page ${n}`}
+                  class="grid size-9 place-items-center rounded-lg text-sm tabular-nums text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink aria-[current=page]:bg-accent aria-[current=page]:text-white dark:aria-[current=page]:text-[#0b0c0f]"
+                >
+                  {n}
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          <a
+            href={pageHref(page + 1)}
+            class:list={[
+              'btn btn-secondary',
+              page === totalPages && 'pointer-events-none opacity-40',
+            ]}
+            aria-disabled={page === totalPages ? 'true' : undefined}
+            tabindex={page === totalPages ? -1 : undefined}
+          >
+            Next
+          </a>
+        </nav>
+      )
+    }
+
+    {/* ═══ Tags ═════════════════════════════════════════════════════════ */}
+    {
+      tags.length > 0 && (
+        <div class="mt-16 border-t border-line pt-8">
+          <h2 class="font-sans text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+            Browse by tag
+          </h2>
+          <ul class="mt-4 flex flex-wrap gap-1.5">
+            {tags.map((tag) => (
+              <li>
+                <a
+                  href={buildHref({ tag: tag.slug === tagSlug ? undefined : tag.slug })}
+                  aria-current={tagSlug === tag.slug ? 'true' : undefined}
+                  class="chip transition-colors hover:border-accent hover:text-accent aria-[current]:border-accent aria-[current]:text-accent"
+                >
+                  #{tag.name}
+                  <span class="tabular-nums opacity-60">{tag.postCount}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+  </div>
+</BaseLayout>

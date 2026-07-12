@@ -1,0 +1,470 @@
+% ---------------------------------------------------------------------------
+% Publication library — Assoc. Prof. Dr. Önder Eyecioğlu
+%
+% Transcribed from the YÖK academic CV. This file is the SOURCE OF TRUTH for
+% the seeded publications: `npm run seed:build` parses it with the same parser
+% the admin panel uses (src/lib/bibtex) and generates seed/seed.sql from it.
+%
+% Turkish characters are written with LaTeX escapes rather than raw UTF-8, on
+% purpose — this is exactly the form IEEE Xplore, Scopus and Google Scholar
+% export, so seeding from it exercises the real import path:
+%
+%   {\"O}nder            → Önder
+%   Eyecio{\u{g}}lu      → Eyecioğlu
+%   Hang{\i}n            → Hangın
+%   {\c{S}}ent{\"u}rk    → Şentürk
+%   {\.I}{\c{c}}elli     → İçelli
+% ---------------------------------------------------------------------------
+
+@string{icrera     = "Proc. IEEE Int. Conf. Renewable Energy Research and Applications (ICRERA)"}
+@string{icsmartgrid = "Proc. Int. Conf. Smart Grid (icSmartGrid)"}
+
+
+% ═══════════════════════════════════════════════════════════════════════════
+% Journal articles
+% ═══════════════════════════════════════════════════════════════════════════
+
+@article{eyecioglu2026qlidnet,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder and Hang{\i}n, Batuhan and Altun, O{\u{g}}uz},
+  title   = {{QLID-Net}: A Hybrid Quantum-Classical Neural Network for Robust and Data-Efficient Smart Grid Load Identification},
+  journal = {IEEE Access},
+  volume  = {14},
+  pages   = {32118--32133},
+  year    = {2026},
+  doi     = {10.1109/ACCESS.2026.3668295},
+  keywords = {quantum machine learning, smart grid, load identification, NILM}
+}
+
+@article{eyecioglu2023strainenergy,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder and Kay{\i}{\c{s}}l{\i}, Korhan and Beken, Murat},
+  title   = {Strain Energy Prediction of Single Wall Carbon Nanotubes Using General Regression Neural Network and Adaptive Neuro-Fuzzy Inference System},
+  journal = {Electric Power Components and Systems},
+  pages   = {1--11},
+  year    = {2023},
+  doi     = {10.1080/15325008.2023.2286346}
+}
+
+@article{eyecioglu2022kufeki,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder},
+  title   = {Machine learning models for estimating the {AC} conductivity mechanism of Edirne Kufeki stone reinforced Polypyrrole composites},
+  journal = {Journal of Applied Polymer Science},
+  volume  = {139},
+  number  = {21},
+  pages   = {1--13},
+  year    = {2022},
+  doi     = {10.1002/app.52194}
+}
+
+@article{eyecioglu2022ppykufeki,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder and Karabul, Ya{\c{s}}ar and K{\i}l{\i}{\c{c}}, Mehmet and G{\"u}ven {\"O}zdemir, Zeynep},
+  title   = {Application of Supervised Machine Learning Regression Algorithm to Prediction of Dielectric Properties of {PPy}/Kufeki Stone Composites for Energy Implementations},
+  journal = {Gazi University Journal of Science},
+  number  = {1},
+  pages   = {235--254},
+  year    = {2022},
+  doi     = {10.35378/gujs.810948}
+}
+
+@article{beken2022oil,
+  author  = {Beken, Murat and Eyecio{\u{g}}lu, {\"O}nder and Kurt, Nursa{\c{c}}},
+  title   = {Prediction of Oil Consumption and Oil Access of Countries in the European Union Region with Machine Learning},
+  journal = {International Journal of Smart Grid},
+  volume  = {6},
+  number  = {3},
+  pages   = {83--87},
+  year    = {2022},
+  doi     = {10.20508/ijsmartgrid.v6i3.250.g197}
+}
+
+@article{beken2022actionpotential,
+  author  = {Beken, Murat and Eyecio{\u{g}}lu, {\"O}nder and Hang{\i}n, Batuhan and Kurt, Nursa{\c{c}}},
+  title   = {Simulation of action potential and wake trigger processes in {MATLAB} environment},
+  journal = {International Journal of Engineering Science and Application},
+  volume  = {6},
+  number  = {1},
+  pages   = {29--37},
+  year    = {2022}
+}
+
+@article{eyecioglu2021bazalt,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder},
+  title   = {Comparison of Machine Learning Models for the Prediction of the Dielectric Properties of Basalt/{PANI} Composites},
+  journal = {European Journal of Science and Technology},
+  number  = {23},
+  pages   = {817--826},
+  year    = {2021},
+  doi     = {10.31590/ejosat.876423}
+}
+
+@article{kilic2020dype,
+  author  = {K{\i}l{\i}{\c{c}}, Mehmet and Eyecio{\u{g}}lu, {\"O}nder and G{\"u}ven {\"O}zdemir, Zeynep and Alkan, {\"U}mit},
+  title   = {Prediction of the dielectric parameters of {DYPE}/{PANI} composite films as a function of temperature and {PANI} doping concentration using {GRNN}},
+  journal = {Journal of the Faculty of Engineering and Architecture of Gazi University},
+  volume  = {35},
+  number  = {2},
+  pages   = {1077--1087},
+  year    = {2020},
+  doi     = {10.17341/gazimmfd.422448}
+}
+
+@article{toker2019mcnp,
+  author  = {Toker, Ozan and {\c{C}}a{\u{g}}lar, Mustafa and {\"O}z, Ersoy and Bak{\i}rdere, Sezgin and Topda{\u{g}}{\i}, {\"O}mer and Eyecio{\u{g}}lu, {\"O}nder and {\.I}{\c{c}}elli, Orhan},
+  title   = {Radiation interaction parameters for blood samples of breast cancer patients: an {MCNP} study},
+  journal = {Radiation and Environmental Biophysics},
+  volume  = {58},
+  number  = {4},
+  pages   = {531--537},
+  year    = {2019},
+  doi     = {10.1007/s00411-019-00806-0}
+}
+
+@article{eyecioglu2019bxcom,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder and Karabul, Ya{\c{s}}ar and {\c{C}}a{\u{g}}lar, Mustafa and Toker, Ozan and {\.I}{\c{c}}elli, Orhan},
+  title   = {{BXCOM}: a software for computation of radiation sensing},
+  journal = {Radiation Effects and Defects in Solids},
+  volume  = {174},
+  pages   = {1--13},
+  year    = {2019},
+  doi     = {10.1080/10420150.2019.1606811},
+  keywords = {scientific software, radiation shielding, buildup factors}
+}
+
+@article{toker2019icpms,
+  author  = {Toker, Ozan and Topda{\u{g}}{\i}, {\"O}mer and Bak{\i}rdere, Sezgin and Bursal{\i}o{\u{g}}lu, Ertu{\u{g}}rul Osman and Eyecio{\u{g}}lu, {\"O}nder and Karabul, Ya{\c{s}}ar and {\c{C}}a{\u{g}}lar, Mustafa and {\.I}{\c{c}}elli, Orhan},
+  title   = {Determination of {Se}, {Cr}, {Mn}, {Zn}, {Co}, {Na}, and {K} in Blood Samples of Breast Cancer Patients to Investigate Their Variation Using {ICP-MS} and {ICP-OES}},
+  journal = {Atomic Spectroscopy},
+  volume  = {40},
+  number  = {1},
+  pages   = {11--16},
+  year    = {2019},
+  doi     = {10.46770/AS.2019.01.002}
+}
+
+@article{eyecioglu2018pppani,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder and K{\i}l{\i}{\c{c}}, Mehmet and G{\"u}ven {\"O}zdemir, Zeynep},
+  title   = {Prediction of the Dielectric Properties of Polypropylene/Polyaniline Composite Films with an Artificial Neural Network Model},
+  journal = {Gazi University Journal of Science Part C: Design and Technology},
+  volume  = {6},
+  number  = {4},
+  pages   = {787--802},
+  year    = {2018},
+  doi     = {10.29109/gujsc.398275}
+}
+
+@article{topdagi2018nak,
+  author  = {Topda{\u{g}}{\i}, {\"O}mer and Toker, Ozan and Bak{\i}rdere, Sezgin and Bursal{\i}o{\u{g}}lu, Ertu{\u{g}}rul Osman and {\"O}z, Ersoy and Eyecio{\u{g}}lu, {\"O}nder and Demir, Mustafa and {\.I}{\c{c}}elli, Orhan},
+  title   = {Correlation between {Na}/{K} ratio and electron densities in blood samples of breast cancer patients},
+  journal = {BioMetals},
+  volume  = {31},
+  number  = {4},
+  pages   = {673--678},
+  year    = {2018},
+  doi     = {10.1007/s10534-018-0118-2}
+}
+
+@article{hangin2017opencv,
+  author  = {Hang{\i}n, Batuhan and Eyecio{\u{g}}lu, {\"O}nder},
+  title   = {Performance Comparison Between {OpenCV} Built-in {CPU} and {GPU} Functions on Image Processing Operations},
+  journal = {International Journal of Engineering Science and Application},
+  volume  = {1},
+  number  = {2},
+  pages   = {34--41},
+  year    = {2017}
+}
+
+@article{eyecioglu2017zxcomcompat,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder and El Khayatt, A. M. and Karabul, Ya{\c{s}}ar and {\.I}{\c{c}}elli, Orhan},
+  title   = {A study on compatibility of experimental effective atomic numbers with those predicted by {ZXCOM}},
+  journal = {Nuclear Science and Techniques},
+  volume  = {28},
+  number  = {5},
+  pages   = {63--71},
+  year    = {2017},
+  doi     = {10.1007/s41365-017-0220-0}
+}
+
+@article{dereli2017vacancy,
+  author  = {Dereli, G{\"u}lay and Eyecio{\u{g}}lu, {\"O}nder and S{\"u}ng{\"u} M{\i}s{\i}rl{\i}o{\u{g}}lu, Banu},
+  title   = {Vacancy Induced Energy Band Gap Changes of Semiconducting Zigzag Single Walled Carbon Nanotubes},
+  journal = {Advances in Electrical and Computer Engineering},
+  volume  = {17},
+  number  = {3},
+  pages   = {11--18},
+  year    = {2017},
+  doi     = {10.4316/AECE.2017.03002}
+}
+
+@article{eyecioglu2016zxcom,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder and Karabul, Ya{\c{s}}ar and {\.I}{\c{c}}elli, Orhan and El Khayatt, A. M.},
+  title   = {{ZXCOM}: a software for computation of radiation sensing attributes},
+  journal = {Radiation Effects and Defects in Solids},
+  volume  = {171},
+  pages   = {965--977},
+  year    = {2016},
+  doi     = {10.1080/10420150.2016.1263958}
+}
+
+@article{eyecioglu2016basaltpani,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder and K{\i}l{\i}{\c{c}}, Mehmet and Karabul, Ya{\c{s}}ar and Alkan, {\"U}mit and {\.I}{\c{c}}elli, Orhan},
+  title   = {Artificial Neural Networks Study on Prediction of Dielectric Permittivity of Basalt/{PANI} Composites},
+  journal = {International Journal of Engineering Technologies},
+  volume  = {2},
+  number  = {2},
+  pages   = {42--48},
+  year    = {2016},
+  doi     = {10.19072/ijet.27769}
+}
+
+@article{karabul2015eabf,
+  author  = {Karabul, Ya{\c{s}}ar and Susam, Lidya and {\.I}{\c{c}}elli, Orhan and Eyecio{\u{g}}lu, {\"O}nder},
+  title   = {Computation of {EABF} and {EBF} for basalt rock samples},
+  journal = {Nuclear Instruments and Methods in Physics Research Section A},
+  volume  = {797},
+  pages   = {29--36},
+  year    = {2015},
+  doi     = {10.1016/j.nima.2015.06.024}
+}
+
+@article{dereli2015strainmodulated,
+  author  = {Dereli, G{\"u}lay and Eyecio{\u{g}}lu, {\"O}nder and S{\"u}ng{\"u} M{\i}s{\i}rl{\i}o{\u{g}}lu, Banu},
+  title   = {Strain modulated band gaps of semiconducting zigzag single walled carbon nanotubes},
+  journal = {Journal of Optoelectronics and Advanced Materials},
+  volume  = {17},
+  pages   = {918--924},
+  year    = {2015}
+}
+
+@article{dereli2013lowerlimit,
+  author  = {Dereli, G{\"u}lay and S{\"u}ng{\"u} M{\i}s{\i}rl{\i}o{\u{g}}lu, Banu and Eyecio{\u{g}}lu, {\"O}nder and Vardar, Necati},
+  title   = {A new lower limit for the bond breaking strains of defect-free carbon nanotubes: Tight binding {MD} simulation study},
+  journal = {Computational Materials Science},
+  volume  = {69},
+  pages   = {234--242},
+  year    = {2013},
+  doi     = {10.1016/j.commatsci.2012.11.042}
+}
+
+@article{dereli2010vacancyeffect,
+  author  = {Dereli, G{\"u}lay and S{\"u}ng{\"u} M{\i}s{\i}rl{\i}o{\u{g}}lu, Banu and Eyecio{\u{g}}lu, {\"O}nder},
+  title   = {Vacancy Effect on the Thermal and Tensile Stability of a (10,10) Single Walled Carbon Nanotube},
+  journal = {Balkan Physics Letters},
+  volume  = {18},
+  pages   = {171--179},
+  year    = {2010}
+}
+
+
+% ═══════════════════════════════════════════════════════════════════════════
+% Conference papers
+% ═══════════════════════════════════════════════════════════════════════════
+
+@inproceedings{senturk2025evclustering,
+  author    = {{\c{S}}ent{\"u}rk, {\"U}mit and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {Unsupervised Clustering Approaches to Analyze Electric Vehicle Charging Behavior for Smart Grid Integration},
+  booktitle = icrera,
+  pages     = {1917--1925},
+  year      = {2025},
+  doi       = {10.1109/ICRERA66237.2025.11283712}
+}
+
+@inproceedings{hangin2025qsar,
+  author    = {Hang{\i}n, Batuhan and Altun, O{\u{g}}uz and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {A Hybrid Classical-Quantum Model for {QSAR}-Based Biodegradability Prediction},
+  booktitle = {Proc. IEEE High Performance Extreme Computing Conference (HPEC)},
+  pages     = {1--6},
+  year      = {2025},
+  doi       = {10.1109/HPEC67600.2025.11196555}
+}
+
+@inproceedings{akpinar2025braintumor,
+  author    = {Akp{\i}nar, Emine and Hang{\i}n, Batuhan and Oduncuo{\u{g}}lu, Murat and Altun, O{\u{g}}uz and Eyecio{\u{g}}lu, {\"O}nder and Yal{\c{c}}{\i}n, Zeynel},
+  title     = {Quantum-Enhanced Classification of Brain Tumors Using {DNA} Microarray Gene Expression Profiles},
+  booktitle = {Proc. IEEE Computer Society Annual Symposium on VLSI (ISVLSI)},
+  pages     = {763--768},
+  year      = {2025},
+  doi       = {10.1109/ISVLSI65124.2025.11130207}
+}
+
+@inproceedings{hangin2025qnnwind,
+  author    = {Hang{\i}n, Batuhan and Akp{\i}nar, Emine and Altun, O{\u{g}}uz and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {Comparative Analysis of {QNN} Architectures for Wind Power Prediction: Feature Maps and Ansatz Configurations},
+  booktitle = {Proc. IEEE Computer Society Annual Symposium on VLSI (ISVLSI)},
+  pages     = {744--749},
+  year      = {2025},
+  doi       = {10.1109/ISVLSI65124.2025.11130210}
+}
+
+@inproceedings{senturk2025clustering,
+  author    = {{\c{S}}ent{\"u}rk, {\"U}mit and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {Clustering Analysis for Stability Prediction in Smart Grid Systems},
+  booktitle = icsmartgrid,
+  pages     = {713--717},
+  year      = {2025},
+  doi       = {10.1109/icSmartGrid66138.2025.11071813}
+}
+
+@inproceedings{hangin2025transferlearning,
+  author    = {Hang{\i}n, Batuhan and Akp{\i}nar, Emine and Altun, O{\u{g}}uz and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {A Classical-Quantum Transfer Learning Model for Disturbance Detection in Power Systems},
+  booktitle = icsmartgrid,
+  pages     = {700--705},
+  year      = {2025},
+  doi       = {10.1109/icSmartGrid66138.2025.11071818}
+}
+
+@inproceedings{eyecioglu2024quantumgrid,
+  author    = {Eyecio{\u{g}}lu, {\"O}nder and Hang{\i}n, Batuhan and Altun, O{\u{g}}uz},
+  title     = {Quantum Computing Approach to Smart Grid Stability Forecasting},
+  booktitle = icsmartgrid,
+  year      = {2024},
+  doi       = {10.1109/icSmartGrid61824.2024.10578114}
+}
+
+@inproceedings{hangin2024offshore,
+  author    = {Hang{\i}n, Batuhan and Akp{\i}nar, Emine and Oduncuo{\u{g}}lu, Murat and Altun, O{\u{g}}uz and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {A Hybrid Quantum-Classical Machine Learning Approach to Offshore Wind Farm Power Forecasting},
+  booktitle = icrera,
+  pages     = {1105--1110},
+  year      = {2024},
+  doi       = {10.1109/ICRERA62673.2024.10815339}
+}
+
+@inproceedings{senturk2022electricity,
+  author    = {{\c{S}}ent{\"u}rk, {\"U}mit and Beken, Murat and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {Electricity Consumption Forecast using Machine Learning Regression Models in Turkey},
+  booktitle = icrera,
+  pages     = {601--605},
+  year      = {2022},
+  doi       = {10.1109/ICRERA55966.2022.9922702}
+}
+
+@inproceedings{hangin2022energytrends,
+  author    = {Hang{\i}n, Batuhan and Eyecio{\u{g}}lu, {\"O}nder and Beken, Murat},
+  title     = {Investigating the Energy Production Trends of Countries and Its Relationship Between Economic Development},
+  booktitle = icrera,
+  pages     = {597--600},
+  year      = {2022},
+  doi       = {10.1109/ICRERA55966.2022.992268}
+}
+
+@inproceedings{beken2022gnp,
+  author    = {Beken, Murat and Kurt, Nursa{\c{c}} and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {Estimating the Effect of Renewable Energy Policies on the Gross National Product of Turkey by using Artificial Intelligence},
+  booktitle = icrera,
+  pages     = {606--619},
+  year      = {2022},
+  doi       = {10.1109/ICRERA55966.2022.992289}
+}
+
+@inproceedings{hangin2022stability,
+  author    = {Hang{\i}n, Batuhan and Eyecio{\u{g}}lu, {\"O}nder and Beken, Murat},
+  title     = {Forecasting the Stability of a 4-node Architecture Smart Grid Using Machine Learning},
+  booktitle = icsmartgrid,
+  pages     = {440--442},
+  year      = {2022},
+  doi       = {10.1109/icSmartGrid55722.2022.9848635}
+}
+
+@inproceedings{ozturk2021snow,
+  author    = {{\"O}zt{\"u}rk, Oktay and Hang{\i}n, Batuhan and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {Detecting Snow Layer on Solar Panels using Deep Learning},
+  booktitle = icrera,
+  pages     = {434--438},
+  year      = {2021},
+  doi       = {10.1109/ICRERA52334.2021.9598700}
+}
+
+@inproceedings{eyecioglu2019windturbine,
+  author    = {Eyecio{\u{g}}lu, {\"O}nder and Hang{\i}n, Batuhan and Kay{\i}{\c{s}}l{\i}, Korhan and Ye{\c{s}}ilbudak, Mehmet},
+  title     = {Performance Comparison of Different Machine Learning Algorithms on the Prediction of Wind Turbine Power Generation},
+  booktitle = icrera,
+  pages     = {922--926},
+  year      = {2019}
+}
+
+@inproceedings{beken2019classification,
+  author    = {Beken, Murat and Hang{\i}n, Batuhan and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {Classification of Turkey among European Countries by Years in Terms of Energy Efficiency, Total Renewable Energy, Energy Consumption, Greenhouse Gas Emission and Energy Import Dependency by Using Machine Learning},
+  booktitle = icrera,
+  pages     = {951--956},
+  year      = {2019},
+  doi       = {10.1109/ICRERA47325.2019.8996583}
+}
+
+@inproceedings{beken2018anfis,
+  author    = {Beken, Murat and Eyecio{\u{g}}lu, {\"O}nder and Ya{\u{g}}c{\i}, {\"O}zlem and Kay{\i}{\c{s}}l{\i}, Korhan and {\.I}{\c{c}}elli, Orhan},
+  title     = {The {ANFIS} as a Prediction Method of Efficiency of {PV} Cells},
+  booktitle = icrera,
+  pages     = {973--975},
+  year      = {2018},
+  doi       = {10.1109/ICRERA.2018.8566811}
+}
+
+@inproceedings{dereli2010nanotech,
+  author    = {Dereli, G{\"u}lay and Vardar, Necati and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {Effect of Strain on the Energy Band Gaps of (13,0) and (15,0) Carbon Nanotubes},
+  booktitle = {Proc. Nanotech Conference and Expo},
+  volume    = {1},
+  pages     = {292--295},
+  year      = {2010}
+}
+
+@inproceedings{dereli2007aip,
+  author    = {Dereli, G{\"u}lay and S{\"u}ng{\"u} M{\i}s{\i}rl{\i}o{\u{g}}lu, Banu and Eyecio{\u{g}}lu, {\"O}nder},
+  title     = {Temperature Effect on the Physical and Electronic Properties of Single Walled Carbon Nanotubes},
+  booktitle = {AIP Conference Proceedings},
+  volume    = {899},
+  pages     = {381--382},
+  year      = {2007},
+  doi       = {10.1063/1.2733196}
+}
+
+
+% ═══════════════════════════════════════════════════════════════════════════
+% Patents
+% ═══════════════════════════════════════════════════════════════════════════
+
+@patent{eyecioglu2020integrative,
+  author      = {Mutlu, {\"O}zlem and Beken, Murat and {\c{C}}in{\c{c}}in, Zeynep Birsu and Eyecio{\u{g}}lu, {\"O}nder},
+  title       = {An Integrative Analysis System},
+  nationality = {Turkish},
+  number      = {2020/17759},
+  year        = {2020}
+}
+
+@patent{eyecioglu2017wheelchair,
+  author      = {Eyecio{\u{g}}lu, {\"O}nder},
+  title       = {A Wheelchair Controllable by Eye-Blink Movements},
+  nationality = {Turkish},
+  year        = {2017}
+}
+
+@patent{eyecioglu2017accident,
+  author      = {Eyecio{\u{g}}lu, {\"O}nder},
+  title       = {Automatic Accident Detection and Warning Device},
+  nationality = {Turkish},
+  year        = {2017}
+}
+
+
+% ═══════════════════════════════════════════════════════════════════════════
+% Theses
+% ═══════════════════════════════════════════════════════════════════════════
+
+@phdthesis{eyecioglu2012phd,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder},
+  title   = {Computer simulations of the electronic structure of carbon nanotubes},
+  school  = {Yildiz Technical University, Institute of Science},
+  address = {Istanbul, Turkey},
+  year    = {2012},
+  note    = {Advisor: Prof. Dr. G{\"u}lay Dereli}
+}
+
+@mastersthesis{eyecioglu2005msc,
+  author  = {Eyecio{\u{g}}lu, {\"O}nder},
+  title   = {Investigation of the physical properties of carbon nanotubes by computer simulation methods},
+  school  = {Yildiz Technical University, Institute of Science},
+  address = {Istanbul, Turkey},
+  year    = {2005},
+  note    = {Advisor: Prof. Dr. G{\"u}lay Dereli}
+}

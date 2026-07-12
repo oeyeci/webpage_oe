@@ -1,0 +1,49 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import MediaManager from '../../components/admin/MediaManager';
+import { getDb, getEnv } from '../../lib/context';
+import { listMedia } from '../../lib/storage/r2';
+import { getImageSlots } from '../../lib/repositories/about';
+
+const db = getDb();
+const env = getEnv();
+
+const [media, slotMap] = await Promise.all([listMedia(db, { limit: 200 }), getImageSlots(db)]);
+
+const initial = media.map((item) => ({
+  id: item.id,
+  r2Key: item.r2Key,
+  thumbKey: item.thumbKey,
+  filename: item.filename,
+  mimeType: item.mimeType,
+  size: item.size,
+  width: item.width,
+  height: item.height,
+  alt: item.alt,
+  caption: item.caption,
+  folder: item.folder,
+}));
+
+const slots = [...slotMap.values()].map((slot) => ({
+  slug: slot.slug,
+  label: slot.label,
+  description: slot.description,
+  requiredWidth: slot.requiredWidth,
+  requiredHeight: slot.requiredHeight,
+  aspectRatio: slot.aspectRatio,
+  mediaId: slot.mediaId,
+}));
+---
+
+<AdminLayout
+  title="Media"
+  description={`${initial.length} files — images are resized and converted to WebP before upload`}
+  wide
+>
+  <MediaManager
+    initial={initial}
+    slots={slots}
+    mediaBase={env.MEDIA_PUBLIC_BASE}
+    client:load
+  />
+</AdminLayout>

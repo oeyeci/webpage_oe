@@ -1,0 +1,54 @@
+---
+interface Props {
+  id?: string;
+  eyebrow?: string;
+  title?: string;
+  lead?: string;
+  /** Link shown to the right of the heading, e.g. "All publications →". */
+  action?: { label: string; href: string };
+  class?: string;
+}
+
+const { id, eyebrow, title, lead, action, class: className } = Astro.props;
+---
+
+<section id={id} class:list={['container-page py-16 md:py-20', className]}>
+  {
+    (title || eyebrow) && (
+      <div class="reveal mb-10 flex flex-wrap items-end justify-between gap-4 md:mb-12">
+        <div class="max-w-2xl">
+          {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+          {title && (
+            <h2 class="mt-2.5 text-3xl md:text-[2rem] md:leading-[1.15] md:tracking-[-0.02em]">
+              {title}
+            </h2>
+          )}
+          {lead && <p class="mt-3 text-base leading-relaxed text-ink-muted">{lead}</p>}
+        </div>
+
+        {action && (
+          <a
+            href={action.href}
+            class="group inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-accent transition-colors hover:text-accent-hover"
+          >
+            {action.label}
+            <svg
+              class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </a>
+        )}
+      </div>
+    )
+  }
+
+  <slot />
+</section>

@@ -1,0 +1,139 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
+import { getDb } from '../lib/context';
+import { getProfile } from '../lib/repositories/about';
+import { formatLongDate } from '../lib/utils/date';
+
+const db = getDb();
+const profile = await getProfile(db);
+
+// The policy describes what this codebase actually does. If the data flows
+// change, this page must change with them.
+const lastUpdated = new Date('2026-07-11');
+const contactEmail = profile?.email ?? 'oeyeci@gmail.com';
+---
+
+<BaseLayout
+  title="Privacy Policy"
+  description="What data this website collects, why, how long it is kept, and how to have it removed."
+>
+  <PageHeader
+    eyebrow="Legal"
+    title="Privacy policy"
+    lead="This site collects as little as possible. Here is exactly what that means."
+  />
+
+  <div class="container-page pb-24">
+    <div class="prose mx-auto max-w-[44rem]">
+      <p class="text-sm text-ink-subtle">
+        Last updated: <time datetime={lastUpdated.toISOString()}>{formatLongDate(lastUpdated)}</time>
+      </p>
+
+      <h2>The short version</h2>
+      <p>
+        This website sets no advertising cookies, runs no third-party trackers, and does not
+        build a profile of you. The only personal data it stores is what you type into the
+        contact form, and it is used solely to reply to you.
+      </p>
+
+      <h2>What is collected</h2>
+
+      <h3>Contact form</h3>
+      <p>
+        When you send a message, the following is stored in a Cloudflare D1 database in order to
+        read and reply to it:
+      </p>
+      <ul>
+        <li>Your name, email address, subject and message.</li>
+        <li>
+          Your IP address and browser user-agent, and the country Cloudflare associates with the
+          request. These are kept only to identify and block spam.
+        </li>
+        <li>The time of submission.</li>
+      </ul>
+      <p>
+        The legal basis is legitimate interest: you contacted me and expect a reply. Messages are
+        deleted once the correspondence is concluded, and in any case within 24 months.
+      </p>
+
+      <h3>Analytics</h3>
+      <p>
+        Traffic is measured with <strong>Cloudflare Web Analytics</strong>, which is
+        privacy-first: it uses <strong>no cookies</strong>, does not fingerprint visitors, and
+        does not track individuals across sites or sessions. It records aggregate page views,
+        referrers and general performance timings. Nothing it collects identifies you.
+      </p>
+
+      <h3>Spam protection</h3>
+      <p>
+        The contact form is protected by <strong>Cloudflare Turnstile</strong>, a CAPTCHA
+        alternative that verifies you are human without tracking you and without the visual
+        puzzles. It does not use cookies for cross-site tracking.
+      </p>
+
+      <h3>Security and delivery</h3>
+      <p>
+        The site runs on Cloudflare's network, which processes request metadata (IP address,
+        user-agent, timestamps) in transient logs to deliver pages, mitigate attacks and detect
+        abuse. This is standard for any website and is required for it to function at all.
+      </p>
+
+      <h2>What is stored in your browser</h2>
+      <p>The site sets no tracking cookies. It stores exactly two things locally:</p>
+      <ul>
+        <li>
+          <code>theme</code> in <code>localStorage</code> — remembers whether you chose light or
+          dark mode. It never leaves your device.
+        </li>
+        <li>
+          A session cookie, <strong>only if you are the site administrator and sign in</strong>.
+          It is <code>HttpOnly</code>, <code>Secure</code> and <code>SameSite=Lax</code>, and is
+          used purely to keep that session authenticated.
+        </li>
+      </ul>
+      <p>
+        Because no cookies are used for tracking or advertising, no cookie-consent banner is
+        required.
+      </p>
+
+      <h2>What is shared</h2>
+      <p>
+        Nothing is sold, rented, or shared for marketing. Data is processed only by the services
+        needed to run the site:
+      </p>
+      <ul>
+        <li><strong>Cloudflare</strong> — hosting, database, media storage, analytics, spam protection.</li>
+        <li>
+          <strong>Resend</strong> — used solely to email me a copy of your contact-form message so
+          I see it promptly.
+        </li>
+      </ul>
+
+      <h2>Your rights</h2>
+      <p>
+        Under the GDPR and Turkey's KVKK you may request access to, correction of, or erasure of
+        your personal data, and you may object to its processing. To exercise any of these, email{' '}
+        <a href={`mailto:${contactEmail}`}>{contactEmail}</a> and I will respond within 30 days.
+      </p>
+
+      <h2>External links</h2>
+      <p>
+        Pages here link to external sites (DOIs, publisher pages, ORCID, GitHub, Google Scholar).
+        Those sites have their own privacy policies, and this one does not apply once you leave.
+      </p>
+
+      <h2>Changes</h2>
+      <p>
+        If this policy changes, the "last updated" date above changes with it. Material changes
+        will be noted on this page.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about privacy or data on this site can be sent to{' '}
+        <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.
+      </p>
+    </div>
+  </div>
+</BaseLayout>

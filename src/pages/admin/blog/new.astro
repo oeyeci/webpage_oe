@@ -1,0 +1,54 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import PostEditor from '../../../components/admin/PostEditor';
+import { getDb, getEnv } from '../../../lib/context';
+import { listCategories } from '../../../lib/repositories/blog';
+import { listMedia } from '../../../lib/storage/r2';
+
+const db = getDb();
+const env = getEnv();
+
+const [categories, media] = await Promise.all([
+  listCategories(db),
+  listMedia(db, { limit: 200 }),
+]);
+
+const initial = {
+  title: '',
+  slug: '',
+  excerpt: '',
+  contentMd: '',
+  coverMediaId: null,
+  categoryId: null,
+  status: 'draft' as const,
+  scheduledFor: null,
+  isFeatured: false,
+  showToc: true,
+  tags: [],
+  galleryMediaIds: [],
+  seoTitle: '',
+  seoDescription: '',
+};
+---
+
+<AdminLayout title="New post" description="Markdown, LaTeX and code — rendered on save" wide>
+  <PostEditor
+    initial={initial}
+    categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+    media={media.map((m) => ({
+      id: m.id,
+      r2Key: m.r2Key,
+      thumbKey: m.thumbKey,
+      filename: m.filename,
+      mimeType: m.mimeType,
+      size: m.size,
+      width: m.width,
+      height: m.height,
+      alt: m.alt,
+      caption: m.caption,
+      folder: m.folder,
+    }))}
+    mediaBase={env.MEDIA_PUBLIC_BASE}
+    client:load
+  />
+</AdminLayout>

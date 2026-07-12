@@ -1,0 +1,41 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import TabbedResources from '../../components/admin/TabbedResources';
+import { getDb } from '../../lib/context';
+import { getExperiencePageData } from '../../lib/repositories/experiences';
+import {
+  experienceConfig,
+  projectConfig,
+  thesisConfig,
+} from '../../lib/admin/resource-configs';
+
+const db = getDb();
+const { positions, projects, theses } = await getExperiencePageData(db, {
+  includeUnpublished: true,
+});
+
+/** Drizzle returns Date objects; the client form only handles JSON primitives. */
+const plain = <T extends Record<string, unknown>>(rows: T[]) =>
+  rows.map((row) =>
+    Object.fromEntries(
+      Object.entries(row).map(([key, value]) => [
+        key,
+        value instanceof Date ? value.toISOString() : value,
+      ]),
+    ),
+  ) as Array<Record<string, unknown> & { id: number }>;
+
+const tabs = [
+  { id: 'positions', label: 'Positions', config: experienceConfig, rows: plain(positions) },
+  { id: 'projects', label: 'Projects', config: projectConfig, rows: plain(projects) },
+  { id: 'theses', label: 'Supervised theses', config: thesisConfig, rows: plain(theses) },
+];
+---
+
+<AdminLayout
+  title="Experience"
+  description="Positions, funded projects and supervised theses"
+  wide
+>
+  <TabbedResources tabs={tabs} client:load />
+</AdminLayout>

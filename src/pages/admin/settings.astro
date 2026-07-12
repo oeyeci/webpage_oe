@@ -1,0 +1,19 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import SettingsForm from '../../components/admin/SettingsForm';
+import { getDb } from '../../lib/context';
+import { SITE_SETTINGS, getSettings } from '../../lib/repositories/settings';
+
+const db = getDb();
+const values = await getSettings(db);
+
+const definitions = Object.entries(SITE_SETTINGS).map(([key, definition]) => ({
+  key,
+  label: definition.label,
+  group: definition.group,
+}));
+---
+
+<AdminLayout title="Settings" description="Site-wide configuration and backups">
+  <SettingsForm values={values} definitions={definitions} client:load />
+</AdminLayout>

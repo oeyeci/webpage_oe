@@ -1,0 +1,38 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+  /** Optional call to action. */
+  action?: { label: string; href: string };
+}
+
+const { title, description, action } = Astro.props;
+---
+
+<div class="card flex flex-col items-center justify-center px-6 py-16 text-center">
+  <div
+    class="grid size-11 place-items-center rounded-full bg-surface-2 text-ink-subtle"
+    aria-hidden="true"
+  >
+    <svg
+      class="size-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M8 2h8l4 6-8 14L4 8z"></path>
+    </svg>
+  </div>
+  <p class="mt-4 font-serif text-lg font-semibold">{title}</p>
+  {description && <p class="mt-1.5 max-w-sm text-sm text-ink-muted">{description}</p>}
+  {
+    action && (
+      <a href={action.href} class="btn btn-secondary mt-6">
+        {action.label}
+      </a>
+    )
+  }
+</div>

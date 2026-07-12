@@ -1,0 +1,193 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
+import Section from '../components/ui/Section.astro';
+import Timeline from '../components/ui/Timeline.astro';
+import EmptyState from '../components/ui/EmptyState.astro';
+import type { TimelineEntry } from '../components/ui/timeline';
+import { getDb, getEnv } from '../lib/context';
+import { getExperiencePageData } from '../lib/repositories/experiences';
+import { breadcrumbSchema } from '../lib/seo';
+import { formatDateRange } from '../lib/utils/date';
+
+const db = getDb();
+const env = getEnv();
+
+const { positions, projects, theses } = await getExperiencePageData(db);
+
+const TYPE_LABEL: Record<string, string> = {
+  academic: 'Academic',
+  administrative: 'Administrative',
+  industry: 'Industry',
+  visiting: 'Visiting',
+  editorial: 'Editorial',
+  teaching: 'Teaching',
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  pi: 'Principal Investigator',
+  'co-pi': 'Co-Principal Investigator',
+  researcher: 'Researcher',
+  advisor: 'Advisor',
+  scholar: 'Scholar',
+};
+
+const toEntry = (position: (typeof positions)[number]): TimelineEntry => ({
+  period: formatDateRange(position.startDate, position.endDate, position.isCurrent),
+  title: position.title,
+  subtitle: position.organization,
+  meta: [position.department, position.location].filter(Boolean).join(' · ') || null,
+  descriptionHtml: position.descriptionHtml,
+  tags: [TYPE_LABEL[position.type] ?? position.type],
+  href: position.url,
+  isCurrent: position.isCurrent,
+});
+
+// Academic and industry roles read as one career; administrative appointments
+// are a parallel track and get their own timeline rather than being interleaved.
+const administrative = positions.filter((p) => p.type === 'administrative');
+const career = positions.filter((p) => p.type !== 'administrative');
+
+const projectEntries: TimelineEntry[] = projects.map((project) => ({
+  period: formatDateRange(project.startDate, project.endDate, project.status === 'ongoing'),
+  title: project.title,
+  subtitle: project.funder,
+  meta: [ROLE_LABEL[project.role] ?? project.role, project.grantNumber]
+    .filter(Boolean)
+    .join(' · '),
+  descriptionHtml: project.descriptionHtml,
+  tags: [
+    project.status === 'ongoing' ? 'Ongoing' : 'Completed',
+    project.scope === 'international' ? 'International' : 'National',
+  ],
+  href: project.url,
+  isCurrent: project.status === 'ongoing',
+}));
+
+const phdTheses = theses.filter((t) => t.degree === 'phd');
+const mscTheses = theses.filter((t) => t.degree === 'msc');
+---
+
+<BaseLayout
+  title="Experience"
+  description="Academic and industry positions, administrative appointments, funded research projects and supervised theses."
+  schemas={[
+    breadcrumbSchema(
+      [
+        { name: 'Home', url: '/' },
+        { name: 'Experience', url: '/experiences' },
+      ],
+      env.PUBLIC_SITE_URL,
+    ),
+  ]}
+>
+  <PageHeader
+    eyebrow="Career"
+    title="Experience"
+    lead="Two decades across academia and industry — from research assistant in computational physics to associate professor of computer engineering."
+  />
+
+  <div class="container-page pb-12">
+    {
+      positions.length === 0 && projects.length === 0 && (
+        <EmptyState
+          title="No experience recorded yet"
+          description="Positions and projects appear here once they are added in the admin panel."
+        />
+      )
+    }
+
+    {
+      career.length > 0 && (
+        <section class="max-w-3xl">
+          <h2 class="reveal font-serif text-2xl font-semibold">Positions</h2>
+          <div class="mt-8">
+            <Timeline entries={career.map(toEntry)} />
+          </div>
+        </section>
+      )
+    }
+  </div>
+
+  {/* ═══ Administrative ═════════════════════════════════════════════════ */}
+  {
+    administrative.length > 0 && (
+      <Section eyebrow="Leadership" title="Administrative appointments" class="bg-surface">
+        <div class="max-w-3xl">
+          <Timeline entries={administrative.map(toEntry)} />
+        </div>
+      </Section>
+    )
+  }
+
+  {/* ═══ Projects ═══════════════════════════════════════════════════════ */}
+  {
+    projectEntries.length > 0 && (
+      <Section
+        eyebrow="Funded research"
+        title="Projects"
+        lead="Grants from TÜBİTAK and university research funds, as principal investigator and as researcher."
+      >
+        <div class="max-w-3xl">
+          <Timeline entries={projectEntries} />
+        </div>
+      </Section>
+    )
+  }
+
+  {/* ═══ Supervision ════════════════════════════════════════════════════ */}
+  {
+    theses.length > 0 && (
+      <Section
+        eyebrow="Supervision"
+        title="Supervised theses"
+        lead="Doctoral and master's students supervised to completion."
+        class="bg-surface"
+      >
+        <div class="grid gap-10 lg:grid-cols-2">
+          {[
+            { label: 'Doctoral', list: phdTheses },
+            { label: "Master's", list: mscTheses },
+          ]
+            .filter((group) => group.list.length > 0)
+            .map((group) => (
+              <div class="reveal">
+                <h3 class="font-sans text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+                  {group.label} · {group.list.length}
+                </h3>
+                <ul class="mt-5 space-y-5">
+                  {group.list.map((thesis) => (
+                    <li class="flex gap-4 border-b border-line pb-5 last:border-0">
+                      <span class="mt-0.5 font-mono text-xs tabular-nums text-ink-subtle">
+                        {thesis.year ?? '—'}
+                      </span>
+                      <div class="min-w-0">
+                        <p class="font-medium leading-snug">{thesis.studentName}</p>
+                        <p class="mt-1 text-sm leading-relaxed text-ink-muted">{thesis.title}</p>
+                        {thesis.institution && (
+                          <p class="mt-1 text-xs text-ink-subtle">{thesis.institution}</p>
+                        )}
+                        {thesis.status === 'ongoing' && (
+                          <span class="chip chip-accent mt-2 !py-0.5 !text-xs">In progress</span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+        </div>
+      </Section>
+    )
+  }
+
+  <Section class="!pb-24">
+    <div class="reveal card flex flex-col items-center gap-5 px-6 py-12 text-center">
+      <h2 class="text-2xl md:text-3xl">Looking for the full record?</h2>
+      <p class="max-w-lg text-ink-muted">
+        Every publication, with IEEE citations and BibTeX export.
+      </p>
+      <a href="/publications" class="btn btn-primary">Browse publications</a>
+    </div>
+  </Section>
+</BaseLayout>

@@ -1,0 +1,22 @@
+# Cloudflare static-asset headers.
+#
+# Dynamic (SSR) responses get their headers from src/middleware.ts. This file
+# only governs files served straight from the assets binding.
+
+# Hashed build output is content-addressed, so it can be cached forever.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Icons and the OG card change rarely; a day at the edge with a long
+# stale-while-revalidate is the right trade.
+/*.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/*.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/site.webmanifest
+  Cache-Control: public, max-age=86400
+
+# Baseline security headers for every static asset.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

@@ -1,0 +1,72 @@
+---
+import { eq } from 'drizzle-orm';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ActivityEditor from '../../../components/admin/ActivityEditor';
+import { getDb, getEnv } from '../../../lib/context';
+import { getActivity, listActivityCategories } from '../../../lib/repositories/activities';
+import { listMedia } from '../../../lib/storage/r2';
+import { activityImages } from '../../../lib/db/schema';
+
+const db = getDb();
+const env = getEnv();
+
+const id = Number(Astro.params.id);
+if (!Number.isInteger(id) || id <= 0) {
+  return Astro.rewrite('/404');
+}
+
+const activity = await getActivity(db, id);
+if (!activity) {
+  return Astro.rewrite('/404');
+}
+
+const [categories, media, gallery] = await Promise.all([
+  listActivityCategories(db),
+  listMedia(db, { limit: 200 }),
+  db
+    .select({ mediaId: activityImages.mediaId })
+    .from(activityImages)
+    .where(eq(activityImages.activityId, id))
+    .orderBy(activityImages.sortOrder)
+    .all(),
+]);
+
+const initial = {
+  id: activity.id,
+  title: activity.title,
+  slug: activity.slug,
+  activityDate: activity.activityDate,
+  endDate: activity.endDate ?? '',
+  location: activity.location ?? '',
+  categoryId: activity.categoryId,
+  excerpt: activity.excerpt ?? '',
+  descriptionMd: activity.descriptionMd ?? '',
+  coverMediaId: activity.coverMediaId,
+  galleryMediaIds: gallery.map((row) => row.mediaId),
+  url: activity.url ?? '',
+  isFeatured: activity.isFeatured,
+  isPublished: activity.isPublished,
+};
+---
+
+<AdminLayout title="Edit activity" description={activity.title} wide>
+  <ActivityEditor
+    initial={initial}
+    categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+    media={media.map((m) => ({
+      id: m.id,
+      r2Key: m.r2Key,
+      thumbKey: m.thumbKey,
+      filename: m.filename,
+      mimeType: m.mimeType,
+      size: m.size,
+      width: m.width,
+      height: m.height,
+      alt: m.alt,
+      caption: m.caption,
+      folder: m.folder,
+    }))}
+    mediaBase={env.MEDIA_PUBLIC_BASE}
+    client:load
+  />
+</AdminLayout>

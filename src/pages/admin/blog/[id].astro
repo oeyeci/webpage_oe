@@ -1,0 +1,79 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import PostEditor from '../../../components/admin/PostEditor';
+import { getDb, getEnv } from '../../../lib/context';
+import { getPostById, listCategories } from '../../../lib/repositories/blog';
+import { listMedia } from '../../../lib/storage/r2';
+import { blogPostGallery, blogPostTags, blogTags } from '../../../lib/db/schema';
+import { eq } from 'drizzle-orm';
+
+const db = getDb();
+const env = getEnv();
+
+const id = Number(Astro.params.id);
+if (!Number.isInteger(id) || id <= 0) {
+  return Astro.rewrite('/404');
+}
+
+const post = await getPostById(db, id);
+if (!post) {
+  return Astro.rewrite('/404');
+}
+
+const [categories, media, tagRows, galleryRows] = await Promise.all([
+  listCategories(db),
+  listMedia(db, { limit: 200 }),
+  db
+    .select({ name: blogTags.name })
+    .from(blogPostTags)
+    .innerJoin(blogTags, eq(blogTags.id, blogPostTags.tagId))
+    .where(eq(blogPostTags.postId, id))
+    .all(),
+  db
+    .select({ mediaId: blogPostGallery.mediaId })
+    .from(blogPostGallery)
+    .where(eq(blogPostGallery.postId, id))
+    .orderBy(blogPostGallery.sortOrder)
+    .all(),
+]);
+
+const initial = {
+  id: post.id,
+  title: post.title,
+  slug: post.slug,
+  excerpt: post.excerpt ?? '',
+  contentMd: post.contentMd,
+  coverMediaId: post.coverMediaId,
+  categoryId: post.categoryId,
+  status: post.status,
+  scheduledFor: post.scheduledFor?.toISOString() ?? null,
+  isFeatured: post.isFeatured,
+  showToc: post.showToc,
+  tags: tagRows.map((t) => t.name),
+  galleryMediaIds: galleryRows.map((g) => g.mediaId),
+  seoTitle: post.seoTitle ?? '',
+  seoDescription: post.seoDescription ?? '',
+};
+---
+
+<AdminLayout title="Edit post" description={post.title} wide>
+  <PostEditor
+    initial={initial}
+    categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+    media={media.map((m) => ({
+      id: m.id,
+      r2Key: m.r2Key,
+      thumbKey: m.thumbKey,
+      filename: m.filename,
+      mimeType: m.mimeType,
+      size: m.size,
+      width: m.width,
+      height: m.height,
+      alt: m.alt,
+      caption: m.caption,
+      folder: m.folder,
+    }))}
+    mediaBase={env.MEDIA_PUBLIC_BASE}
+    client:load
+  />
+</AdminLayout>

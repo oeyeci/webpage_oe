@@ -1,0 +1,167 @@
+---
+/**
+ * The shell every public page renders into.
+ *
+ * Loads the profile and settings once per request and hands them to the header,
+ * footer and SEO tags, so a page only has to describe *itself*.
+ */
+import '../styles/global.css';
+
+import Seo from '../components/seo/Seo.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import { getDb, getEnv } from '../lib/context';
+import { getProfile } from '../lib/repositories/about';
+import { getSettings } from '../lib/repositories/settings';
+import { absoluteUrl, personSchema, websiteSchema } from '../lib/seo';
+import { mediaUrl } from '../lib/storage/r2';
+import { getImageSlot } from '../lib/repositories/about';
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  type?: 'website' | 'article' | 'profile';
+  publishedTime?: string;
+  modifiedTime?: string;
+  tags?: string[];
+  noindex?: boolean;
+  /** Extra JSON-LD for this page, on top of the site-wide Person + WebSite. */
+  schemas?: Array<Record<string, unknown>>;
+  /** Suppress the site-wide Person/WebSite schema (used by the 404 page). */
+  bareSchema?: boolean;
+}
+
+const {
+  title,
+  description,
+  image,
+  type = 'website',
+  publishedTime,
+  modifiedTime,
+  tags,
+  noindex = false,
+  schemas = [],
+  bareSchema = false,
+} = Astro.props;
+
+const db = getDb();
+const env = getEnv();
+
+const [profile, settings, portraitSlot] = await Promise.all([
+  getProfile(db),
+  getSettings(db),
+  getImageSlot(db, 'about.portrait'),
+]);
+
+const siteUrl = env.PUBLIC_SITE_URL;
+const siteName = settings['site.title'];
+const pathname = Astro.url.pathname;
+const canonical = absoluteUrl(pathname, siteUrl);
+
+const portraitUrl = portraitSlot?.media
+  ? absoluteUrl(mediaUrl(portraitSlot.media.r2Key, env.MEDIA_PUBLIC_BASE), siteUrl)
+  : undefined;
+
+const siteSchemas =
+  bareSchema || !profile
+    ? []
+    : [
+        personSchema(profile, siteUrl, portraitUrl),
+        websiteSchema(siteUrl, siteName, settings['site.description']),
+      ];
+---
+
+<!doctype html>
+<html lang={settings['site.locale']} class="scroll-smooth">
+  <head>
+    {/*
+      Theme resolution must happen *before* the browser paints, or a visitor who
+      chose dark mode sees a white flash on every navigation. This is the one
+      script that legitimately blocks rendering — it is ~10 lines and runs in
+      well under a millisecond.
+
+      It also sets `.js`, which is what gates the reveal animations: with
+      JavaScript off, `.reveal` never becomes transparent, so content that would
+      otherwise wait for an observer is simply visible.
+    */}
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+        root.classList.add('js');
+        try {
+          const stored = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (!stored && prefersDark)) root.classList.add('dark');
+        } catch {
+          /* localStorage can throw in private mode — fall back to light. */
+        }
+      })();
+    </script>
+
+    <Seo
+      title={title}
+      description={description ?? settings['site.description']}
+      canonical={canonical}
+      image={image}
+      type={type}
+      publishedTime={publishedTime}
+      modifiedTime={modifiedTime}
+      tags={tags}
+      noindex={noindex}
+      siteName={siteName}
+      locale={settings['site.locale']}
+      analyticsToken={env.PUBLIC_CF_ANALYTICS_TOKEN}
+      schemas={[...siteSchemas, ...schemas]}
+    />
+  </head>
+
+  <body class="min-h-screen bg-paper text-ink antialiased">
+    <a href="#main" class="skip-link">Skip to content</a>
+
+    <Header siteName={siteName} pathname={pathname} />
+
+    <main id="main" tabindex="-1" class="focus:outline-none">
+      <slot />
+    </main>
+
+    <Footer profile={profile} siteName={siteName} />
+
+    {/*
+      Scroll reveal. One shared IntersectionObserver for every `.reveal` on the
+      page — a per-element observer would be a needless allocation on pages with
+      dozens of cards. Elements are unobserved once revealed; the animation is a
+      one-shot, not a scroll-linked effect.
+    */}
+    <script is:inline>
+      (() => {
+        const targets = document.querySelectorAll('.reveal');
+        if (targets.length === 0) return;
+
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduced || !('IntersectionObserver' in window)) {
+          targets.forEach((el) => el.classList.add('is-visible'));
+          return;
+        }
+
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              entry.target.classList.add('is-visible');
+              observer.unobserve(entry.target);
+            }
+          },
+          { rootMargin: '0px 0px -10% 0px', threshold: 0.05 },
+        );
+
+        targets.forEach((el, index) => {
+          // A small stagger makes a grid of cards read as one gesture rather
+          // than a dozen unrelated ones.
+          el.style.transitionDelay = `${Math.min(index % 6, 5) * 60}ms`;
+          observer.observe(el);
+        });
+      })();
+    </script>
+  </body>
+</html>

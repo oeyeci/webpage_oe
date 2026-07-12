@@ -1,0 +1,19 @@
+# Normalise line endings. Without this, a Windows checkout commits CRLF and the
+# Cloudflare build container (Linux) sees the whole tree as modified.
+* text=auto eol=lf
+
+# Binary — never touch.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.gif  binary
+*.pdf  binary
+*.woff  binary
+*.woff2 binary
+
+# Generated — collapse in diffs and exclude from language stats.
+migrations/**      linguist-generated=true
+seed/seed.sql      linguist-generated=true
+package-lock.json  linguist-generated=true

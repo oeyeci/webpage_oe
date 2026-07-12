@@ -1,0 +1,367 @@
+---
+/**
+ * A single blog post.
+ *
+ * The body is served straight out of `blog_posts.content_html` — the markdown,
+ * LaTeX and syntax highlighting were all rendered once when the post was saved,
+ * so this page does no parsing at request time. See lib/content/markdown.ts.
+ */
+import 'katex/dist/katex.min.css';
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MediaImage from '../../components/ui/MediaImage.astro';
+import { getDb, getEnv, getExecutionContext, getUser } from '../../lib/context';
+import {
+  getAdjacentPosts,
+  getPostBySlug,
+  getRelatedPosts,
+  incrementViews,
+} from '../../lib/repositories/blog';
+import { absoluteUrl, blogPostingSchema, breadcrumbSchema, metaDescription } from '../../lib/seo';
+import { mediaUrl } from '../../lib/storage/r2';
+import { formatLongDate } from '../../lib/utils/date';
+
+const db = getDb();
+const env = getEnv();
+const user = getUser(Astro);
+
+const slug = Astro.params.slug!;
+
+// An administrator can preview a draft by its URL; everyone else gets a 404.
+const post = await getPostBySlug(db, slug, { includeUnpublished: Boolean(user) });
+
+if (!post) {
+  return Astro.rewrite('/404');
+}
+
+const [{ previous, next }, related] = await Promise.all([
+  getAdjacentPosts(db, post.publishedAt),
+  getRelatedPosts(db, post, 3),
+]);
+
+// Count the read without making the reader wait for the write.
+if (!user) {
+  getExecutionContext(Astro).waitUntil(incrementViews(db, post.id));
+}
+
+const isDraft = post.status !== 'published';
+const coverUrl = post.cover
+  ? absoluteUrl(mediaUrl(post.cover.r2Key, env.MEDIA_PUBLIC_BASE), env.PUBLIC_SITE_URL)
+  : undefined;
+
+const description = metaDescription(post.seoDescription ?? post.excerpt, post.title);
+const toc = post.showToc ? (post.toc ?? []) : [];
+---
+
+<BaseLayout
+  title={post.seoTitle ?? post.title}
+  description={description}
+  image={coverUrl}
+  type="article"
+  publishedTime={post.publishedAt?.toISOString()}
+  modifiedTime={post.updatedAt.toISOString()}
+  tags={post.tags.map((t) => t.name)}
+  noindex={isDraft}
+  schemas={[
+    breadcrumbSchema(
+      [
+        { name: 'Home', url: '/' },
+        { name: 'Blog', url: '/blog' },
+        { name: post.title, url: `/blog/${post.slug}` },
+      ],
+      env.PUBLIC_SITE_URL,
+    ),
+    blogPostingSchema(
+      post,
+      env.PUBLIC_SITE_URL,
+      post.authorName ?? 'Önder Eyecioğlu',
+      coverUrl,
+    ),
+  ]}
+>
+  {
+    isDraft && (
+      <div class="border-b border-warning/30 bg-warning/10">
+        <p class="container-page py-2.5 text-center text-sm font-medium text-warning">
+          Draft preview — this post is not publicly visible.
+        </p>
+      </div>
+    )
+  }
+
+  <article class="container-page pt-12 pb-20 md:pt-16">
+    {/* ═══ Header ═══════════════════════════════════════════════════════ */}
+    <header class="mx-auto max-w-[44rem]">
+      <nav aria-label="Breadcrumb" class="mb-6">
+        <a
+          href="/blog"
+          class="inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
+        >
+          <svg
+            class="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M19 12H5M11 18l-6-6 6-6"></path>
+          </svg>
+          All posts
+        </a>
+      </nav>
+
+      <div class="flex flex-wrap items-center gap-2 text-sm text-ink-subtle">
+        {post.category && <span class="chip chip-accent !py-0.5 !text-xs">{post.category.name}</span>}
+        {
+          post.publishedAt && (
+            <time datetime={post.publishedAt.toISOString()}>{formatLongDate(post.publishedAt)}</time>
+          )
+        }
+        <span aria-hidden="true">·</span>
+        <span>{post.readingMinutes} min read</span>
+      </div>
+
+      <h1 class="mt-4 text-[2.25rem] leading-[1.12] tracking-[-0.025em] md:text-[2.75rem]">
+        {post.title}
+      </h1>
+
+      {
+        post.excerpt && (
+          <p class="mt-5 text-lg leading-relaxed text-ink-muted">{post.excerpt}</p>
+        )
+      }
+
+      {
+        post.authorName && (
+          <p class="mt-6 flex items-center gap-2 border-t border-line pt-6 text-sm">
+            <span class="text-ink-subtle">By</span>
+            <span class="font-medium">{post.authorName}</span>
+          </p>
+        )
+      }
+    </header>
+
+    {/* ═══ Cover ════════════════════════════════════════════════════════ */}
+    {
+      post.cover && (
+        <figure class="mx-auto mt-10 max-w-4xl">
+          <MediaImage
+            media={post.cover}
+            priority
+            sizes="(min-width: 1024px) 56rem, 100vw"
+            class="aspect-video w-full rounded-2xl border border-line object-cover shadow-card"
+          />
+          {post.cover.caption && (
+            <figcaption class="mt-3 text-center text-sm text-ink-subtle">
+              {post.cover.caption}
+            </figcaption>
+          )}
+        </figure>
+      )
+    }
+
+    {/* ═══ Body + TOC ═══════════════════════════════════════════════════ */}
+    <div class="mx-auto mt-12 grid max-w-[44rem] gap-12 xl:max-w-none xl:grid-cols-[16rem_44rem_16rem] xl:justify-center">
+      {/* Table of contents — sticky on wide screens, collapsed on narrow ones
+          so it never pushes the article below the fold on a phone. */}
+      {
+        toc.length > 1 && (
+          <aside class="xl:sticky xl:top-24 xl:self-start">
+            <details class="group xl:open" open>
+              <summary class="cursor-pointer list-none font-sans text-xs font-semibold uppercase tracking-wider text-ink-subtle xl:cursor-default">
+                On this page
+              </summary>
+              <nav aria-label="Table of contents" class="mt-4">
+                <ul class="space-y-2 border-l border-line">
+                  {toc.map((item) => (
+                    <li style={`padding-left: ${(item.depth - 2) * 0.75 + 0.875}rem`}>
+                      <a
+                        href={`#${item.id}`}
+                        data-toc-link={item.id}
+                        class="-ml-px block border-l-2 border-transparent py-0.5 text-sm leading-snug text-ink-muted transition-colors hover:border-line-strong hover:text-ink aria-[current=true]:border-accent aria-[current=true]:font-medium aria-[current=true]:text-accent"
+                      >
+                        {item.text}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </details>
+          </aside>
+        )
+      }
+
+      <div class:list={['min-w-0', toc.length <= 1 && 'xl:col-start-2']}>
+        <div class="prose" set:html={post.contentHtml} />
+
+        {/* ═══ Gallery ══════════════════════════════════════════════════ */}
+        {
+          post.gallery.length > 0 && (
+            <section class="mt-14">
+              <h2 class="font-serif text-2xl font-semibold">Gallery</h2>
+              <ul class="mt-6 grid gap-4 sm:grid-cols-2">
+                {post.gallery.map((image) => (
+                  <li>
+                    <figure>
+                      <MediaImage
+                        media={image}
+                        sizes="(min-width: 640px) 22rem, 100vw"
+                        class="aspect-4/3 w-full rounded-xl border border-line object-cover"
+                      />
+                      {image.caption && (
+                        <figcaption class="mt-2 text-sm text-ink-subtle">
+                          {image.caption}
+                        </figcaption>
+                      )}
+                    </figure>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+
+        {/* ═══ Tags ═════════════════════════════════════════════════════ */}
+        {
+          post.tags.length > 0 && (
+            <ul class="mt-12 flex flex-wrap gap-1.5 border-t border-line pt-8">
+              {post.tags.map((tag) => (
+                <li>
+                  <a
+                    href={`/blog?tag=${tag.slug}`}
+                    class="chip transition-colors hover:border-accent hover:text-accent"
+                  >
+                    #{tag.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+
+        {/* ═══ Prev / next ══════════════════════════════════════════════ */}
+        {
+          (previous || next) && (
+            <nav
+              aria-label="More posts"
+              class="mt-12 grid gap-4 border-t border-line pt-8 sm:grid-cols-2"
+            >
+              {previous ? (
+                <a href={`/blog/${previous.slug}`} class="card card-interactive group p-5">
+                  <span class="text-xs text-ink-subtle">← Previous</span>
+                  <p class="mt-1.5 font-medium leading-snug transition-colors group-hover:text-accent">
+                    {previous.title}
+                  </p>
+                </a>
+              ) : (
+                <span />
+              )}
+
+              {next && (
+                <a
+                  href={`/blog/${next.slug}`}
+                  class="card card-interactive group p-5 sm:text-right"
+                >
+                  <span class="text-xs text-ink-subtle">Next →</span>
+                  <p class="mt-1.5 font-medium leading-snug transition-colors group-hover:text-accent">
+                    {next.title}
+                  </p>
+                </a>
+              )}
+            </nav>
+          )
+        }
+      </div>
+
+      {/* Right rail — kept empty on purpose so the article stays optically
+          centred while the TOC occupies the left column. */}
+      <div class="hidden xl:block" aria-hidden="true"></div>
+    </div>
+  </article>
+
+  {/* ═══ Related ════════════════════════════════════════════════════════ */}
+  {
+    related.length > 0 && (
+      <section class="border-t border-line bg-surface">
+        <div class="container-page py-16">
+          <h2 class="font-serif text-2xl font-semibold">Keep reading</h2>
+          <div class="mt-8 grid gap-5 md:grid-cols-3">
+            {related.map((item) => (
+              <article class="card card-interactive group overflow-hidden">
+                <a href={`/blog/${item.slug}`} class="block">
+                  {item.cover ? (
+                    <MediaImage
+                      media={item.cover}
+                      thumb
+                      sizes="(min-width: 768px) 22rem, 100vw"
+                      class="aspect-video w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                  ) : (
+                    <div class="aspect-video w-full bg-surface-2" aria-hidden="true" />
+                  )}
+                  <div class="p-5">
+                    <h3 class="text-base leading-snug transition-colors group-hover:text-accent">
+                      {item.title}
+                    </h3>
+                    <p class="mt-2 text-xs text-ink-subtle">{item.readingMinutes} min read</p>
+                  </div>
+                </a>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+</BaseLayout>
+
+{/* Wraps wide tables so they scroll inside their own box instead of forcing the
+    whole page to scroll sideways on a phone, and highlights the current TOC
+    entry as the reader moves through the article. */}
+<script is:inline>
+  (() => {
+    for (const table of document.querySelectorAll('.prose table')) {
+      if (table.parentElement?.classList.contains('table-scroll')) continue;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'table-scroll';
+      table.parentNode?.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    }
+
+    const links = new Map();
+    for (const link of document.querySelectorAll('[data-toc-link]')) {
+      links.set(link.dataset.tocLink, link);
+    }
+    if (links.size === 0) return;
+
+    const headings = [...links.keys()]
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+
+    let current = null;
+    const setCurrent = (id) => {
+      if (id === current) return;
+      if (current) links.get(current)?.removeAttribute('aria-current');
+      current = id;
+      if (id) links.get(id)?.setAttribute('aria-current', 'true');
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Track the topmost heading that is currently within the upper band of
+        // the viewport, so the highlight follows the section being *read*.
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+
+        if (visible[0]) setCurrent(visible[0].target.id);
+      },
+      { rootMargin: '-80px 0px -70% 0px', threshold: 0 },
+    );
+
+    headings.forEach((heading) => observer.observe(heading));
+  })();
+</script>

@@ -1,0 +1,37 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import TabbedResources from '../../components/admin/TabbedResources';
+import { getDb } from '../../lib/context';
+import { listSkillCategories, listSkillGroups } from '../../lib/repositories/skills';
+import { skillCategoryConfig, skillConfig } from '../../lib/admin/resource-configs';
+
+const db = getDb();
+const [groups, categories] = await Promise.all([listSkillGroups(db), listSkillCategories(db)]);
+
+const skills = groups.flatMap((group) => group.skills) as Array<
+  Record<string, unknown> & { id: number }
+>;
+
+const tabs = [
+  {
+    id: 'skills',
+    label: 'Skills',
+    config: skillConfig(categories.map((c) => ({ id: c.id, name: c.name }))),
+    rows: skills,
+  },
+  {
+    id: 'categories',
+    label: 'Categories',
+    config: skillCategoryConfig,
+    rows: categories as Array<Record<string, unknown> & { id: number }>,
+  },
+];
+---
+
+<AdminLayout
+  title="Skills"
+  description="Each category chooses how it renders on the public page"
+  wide
+>
+  <TabbedResources tabs={tabs} client:load />
+</AdminLayout>

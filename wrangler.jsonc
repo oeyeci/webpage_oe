@@ -1,0 +1,73 @@
+/**
+ * Cloudflare Workers configuration.
+ *
+ * The IDs below are placeholders. Run `npm run bootstrap` (or follow
+ * docs/DEPLOYMENT.md) to create the D1 database / R2 bucket / KV namespace
+ * and paste the real IDs here. Secrets are NEVER stored in this file —
+ * use `wrangler secret put <NAME>` for those.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ondereyecioglu",
+  "compatibility_date": "2026-01-01",
+  // `nodejs_compat` is required by the unified/remark/rehype markdown pipeline.
+  "compatibility_flags": ["nodejs_compat"],
+
+  // `main` and `assets` are injected by @astrojs/cloudflare via
+  // @cloudflare/vite-plugin — declaring them here would point at build
+  // artefacts that do not exist until after the first build.
+
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  "placement": { "mode": "smart" },
+
+  /* ---------------------------------------------------------------- */
+  /* D1 — relational database                                          */
+  /* ---------------------------------------------------------------- */
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ondereyecioglu-db",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  /* ---------------------------------------------------------------- */
+  /* R2 — media object storage                                         */
+  /* ---------------------------------------------------------------- */
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "ondereyecioglu-media"
+    }
+  ],
+
+  /* ---------------------------------------------------------------- */
+  /* KV — rate limiting + ephemeral counters                           */
+  /* ---------------------------------------------------------------- */
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+    }
+  ],
+
+  /* ---------------------------------------------------------------- */
+  /* Public (non-secret) variables.                                    */
+  /* Secrets — JWT_SECRET, TURNSTILE_SECRET_KEY, RESEND_API_KEY —      */
+  /* are set with `wrangler secret put`.                               */
+  /* ---------------------------------------------------------------- */
+  "vars": {
+    "PUBLIC_SITE_URL": "https://ondereyecioglu.com",
+    "PUBLIC_TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+    "PUBLIC_CF_ANALYTICS_TOKEN": "",
+    "CONTACT_TO_EMAIL": "oeyeci@gmail.com",
+    "CONTACT_FROM_EMAIL": "no-reply@ondereyecioglu.com",
+    "MEDIA_PUBLIC_BASE": "/media",
+    "ENVIRONMENT": "production"
+  }
+}

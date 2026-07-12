@@ -1,0 +1,28 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import PostList from '../../../components/admin/PostList';
+import { getDb } from '../../../lib/context';
+import { listPosts } from '../../../lib/repositories/blog';
+
+const db = getDb();
+const { items } = await listPosts(db, { includeUnpublished: true, limit: 200 });
+
+const initial = items.map((post) => ({
+  id: post.id,
+  title: post.title,
+  slug: post.slug,
+  status: post.status,
+  isFeatured: post.isFeatured,
+  publishedAt: post.publishedAt?.toISOString() ?? null,
+  scheduledFor: post.scheduledFor?.toISOString() ?? null,
+  readingMinutes: post.readingMinutes,
+  viewCount: post.viewCount,
+  categoryName: post.category?.name ?? null,
+}));
+---
+
+<AdminLayout title="Blog" description={`${initial.length} posts`} wide>
+  <a slot="actions" href="/admin/blog/new" class="btn btn-primary shrink-0">New post</a>
+
+  <PostList initial={initial} client:load />
+</AdminLayout>

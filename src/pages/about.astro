@@ -1,0 +1,277 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
+import Section from '../components/ui/Section.astro';
+import MediaImage from '../components/ui/MediaImage.astro';
+import Timeline from '../components/ui/Timeline.astro';
+import type { TimelineEntry } from '../components/ui/timeline';
+import { getDb, getEnv } from '../lib/context';
+import { getAboutPageData } from '../lib/repositories/about';
+import { breadcrumbSchema } from '../lib/seo';
+import { formatDateRange } from '../lib/utils/date';
+
+const db = getDb();
+const env = getEnv();
+
+const { profile, education, awards, memberships, interests, slots } = await getAboutPageData(db);
+
+const portrait = slots.get('about.portrait');
+const secondary = slots.get('about.secondary');
+
+const educationEntries: TimelineEntry[] = education.map((item) => ({
+  period: item.completedOn ?? formatDateRange(String(item.startYear ?? ''), String(item.endYear ?? '')),
+  title: `${item.degree}${item.field ? ` — ${item.field}` : ''}`,
+  subtitle: item.institution,
+  meta: item.department,
+  descriptionHtml: item.thesisTitle
+    ? `<p><em>Thesis:</em> ${item.thesisTitle}${item.advisor ? ` &nbsp;·&nbsp; <em>Advisor:</em> ${item.advisor}` : ''}</p>`
+    : item.description
+      ? `<p>${item.description}</p>`
+      : null,
+}));
+
+const cvUrl = profile?.cvMediaId ? '/cv.pdf' : null;
+---
+
+<BaseLayout
+  title="About"
+  description={profile?.summary ?? undefined}
+  type="profile"
+  schemas={[
+    breadcrumbSchema(
+      [
+        { name: 'Home', url: '/' },
+        { name: 'About', url: '/about' },
+      ],
+      env.PUBLIC_SITE_URL,
+    ),
+  ]}
+>
+  <PageHeader eyebrow="About" title={profile?.fullName ?? 'About'} lead={profile?.tagline ?? undefined} />
+
+  {/* ═══ Biography ══════════════════════════════════════════════════════ */}
+  <div class="container-page pb-8">
+    <div class="grid gap-12 lg:grid-cols-[1fr_20rem] lg:gap-16">
+      <div class="reveal min-w-0">
+        {
+          profile?.professionalBioHtml && (
+            <div class="prose max-w-none" set:html={profile.professionalBioHtml} />
+          )
+        }
+
+        {
+          profile?.academicBioHtml && (
+            <>
+              <h2 class="mt-14 font-serif text-2xl font-semibold">Academic biography</h2>
+              <div class="prose mt-4 max-w-none" set:html={profile.academicBioHtml} />
+            </>
+          )
+        }
+      </div>
+
+      {/* Sidebar: portrait + facts */}
+      <aside class="reveal space-y-6">
+        {
+          portrait?.media && (
+            <MediaImage
+              media={portrait.media}
+              alt={portrait.media.alt || `Portrait of ${profile?.fullName ?? ''}`}
+              sizes="(min-width: 1024px) 20rem, 100vw"
+              class="aspect-4/5 w-full rounded-2xl border border-line object-cover shadow-card"
+            />
+          )
+        }
+
+        <div class="card p-5">
+          <h2 class="font-sans text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+            At a glance
+          </h2>
+          <dl class="mt-4 space-y-3 text-sm">
+            {
+              profile?.institution && (
+                <div>
+                  <dt class="text-ink-subtle">Institution</dt>
+                  <dd class="mt-0.5 font-medium">{profile.institution}</dd>
+                </div>
+              )
+            }
+            {
+              profile?.department && (
+                <div>
+                  <dt class="text-ink-subtle">Department</dt>
+                  <dd class="mt-0.5 font-medium">{profile.department}</dd>
+                </div>
+              )
+            }
+            {
+              profile?.office && (
+                <div>
+                  <dt class="text-ink-subtle">Office</dt>
+                  <dd class="mt-0.5 font-medium">{profile.office}</dd>
+                </div>
+              )
+            }
+            {
+              profile?.orcid && (
+                <div>
+                  <dt class="text-ink-subtle">ORCID</dt>
+                  <dd class="mt-0.5">
+                    <a
+                      href={profile.orcid}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="font-medium text-accent hover:underline"
+                    >
+                      {profile.orcid.replace(/^https?:\/\/(www\.)?orcid\.org\//, '')}
+                    </a>
+                  </dd>
+                </div>
+              )
+            }
+          </dl>
+
+          {
+            cvUrl && (
+              <a href={cvUrl} class="btn btn-secondary mt-5 w-full" download>
+                Download CV (PDF)
+              </a>
+            )
+          }
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  {/* ═══ Research interests ═════════════════════════════════════════════ */}
+  {
+    interests.length > 0 && (
+      <Section eyebrow="Research" title="Research interests" class="bg-surface">
+        <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {interests.map((interest) => (
+            <li class="reveal card p-6">
+              <h3 class="text-lg leading-snug">{interest.title}</h3>
+              {interest.description && (
+                <p class="mt-2.5 text-sm leading-relaxed text-ink-muted">{interest.description}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </Section>
+    )
+  }
+
+  {/* ═══ Education ══════════════════════════════════════════════════════ */}
+  {
+    educationEntries.length > 0 && (
+      <Section eyebrow="Background" title="Education">
+        <div class="max-w-3xl">
+          <Timeline entries={educationEntries} />
+        </div>
+      </Section>
+    )
+  }
+
+  {/* ═══ Secondary image (predefined slot) ══════════════════════════════ */}
+  {
+    secondary?.media && (
+      <div class="container-page py-4">
+        <figure class="reveal">
+          <MediaImage
+            media={secondary.media}
+            sizes="(min-width: 1024px) 72rem, 100vw"
+            class="aspect-16/7 w-full rounded-2xl border border-line object-cover shadow-card"
+          />
+          {secondary.media.caption && (
+            <figcaption class="mt-3 text-center text-sm text-ink-subtle">
+              {secondary.media.caption}
+            </figcaption>
+          )}
+        </figure>
+      </div>
+    )
+  }
+
+  {/* ═══ Awards & memberships ═══════════════════════════════════════════ */}
+  {
+    (awards.length > 0 || memberships.length > 0) && (
+      <Section class="bg-surface">
+        <div class="grid gap-12 lg:grid-cols-2">
+          {awards.length > 0 && (
+            <div class="reveal">
+              <p class="eyebrow">Recognition</p>
+              <h2 class="mt-2.5 text-3xl">Awards &amp; honours</h2>
+              <ul class="mt-7 space-y-4">
+                {awards.map((award) => (
+                  <li class="flex gap-4 border-b border-line pb-4 last:border-0">
+                    <span class="mt-0.5 font-mono text-xs tabular-nums text-ink-subtle">
+                      {award.year ?? '—'}
+                    </span>
+                    <div class="min-w-0">
+                      <p class="font-medium leading-snug">{award.title}</p>
+                      {award.issuer && (
+                        <p class="mt-0.5 text-sm text-ink-muted">{award.issuer}</p>
+                      )}
+                      {award.description && (
+                        <p class="mt-1 text-sm text-ink-subtle">{award.description}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {memberships.length > 0 && (
+            <div class="reveal">
+              <p class="eyebrow">Community</p>
+              <h2 class="mt-2.5 text-3xl">Professional memberships</h2>
+              <ul class="mt-7 space-y-4">
+                {memberships.map((membership) => (
+                  <li class="flex gap-4 border-b border-line pb-4 last:border-0">
+                    <span class="mt-0.5 font-mono text-xs tabular-nums text-ink-subtle">
+                      {membership.startYear ?? '—'}
+                    </span>
+                    <div class="min-w-0">
+                      <p class="font-medium leading-snug">
+                        {membership.url ? (
+                          <a
+                            href={membership.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="transition-colors hover:text-accent"
+                          >
+                            {membership.organization}
+                          </a>
+                        ) : (
+                          membership.organization
+                        )}
+                      </p>
+                      {membership.role && (
+                        <p class="mt-0.5 text-sm text-ink-muted">{membership.role}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </Section>
+    )
+  }
+
+  {/* ═══ CTA ════════════════════════════════════════════════════════════ */}
+  <Section class="!pb-24">
+    <div class="reveal card flex flex-col items-center gap-5 px-6 py-12 text-center">
+      <h2 class="text-2xl md:text-3xl">Interested in working together?</h2>
+      <p class="max-w-lg text-ink-muted">
+        I supervise graduate students and collaborate on research in quantum machine learning and
+        intelligent energy systems.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href="/contact" class="btn btn-primary">Get in touch</a>
+        <a href="/experiences" class="btn btn-secondary">See my experience</a>
+      </div>
+    </div>
+  </Section>
+</BaseLayout>

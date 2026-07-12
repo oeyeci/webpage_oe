@@ -1,0 +1,54 @@
+---
+/**
+ * Renders an image stored in R2.
+ *
+ * Always emits intrinsic `width`/`height` (read from the file header at upload
+ * time and stored on the row). Without them the browser cannot reserve space
+ * and the page racks up Cumulative Layout Shift as each image arrives — the
+ * most common reason an otherwise-fast site fails Core Web Vitals.
+ */
+import type { Media } from '../../lib/db/schema';
+import { mediaUrl } from '../../lib/storage/r2';
+import { getEnv } from '../../lib/context';
+
+interface Props {
+  media: Media | null | undefined;
+  /** Overrides `media.alt`. Pass "" only for genuinely decorative images. */
+  alt?: string;
+  class?: string;
+  /** Above the fold? Then load eagerly and hint high priority. */
+  priority?: boolean;
+  sizes?: string;
+  /** Use the stored thumbnail instead of the original. */
+  thumb?: boolean;
+}
+
+const { media, alt, class: className, priority = false, sizes, thumb = false } = Astro.props;
+
+const env = getEnv();
+const base = env.MEDIA_PUBLIC_BASE;
+
+const key = thumb && media?.thumbKey ? media.thumbKey : media?.r2Key;
+const src = mediaUrl(key, base);
+
+// Alt text is required for WCAG AA. An empty string is a valid, *deliberate*
+// choice for decoration; `undefined` on a meaningful image is a bug, so we fall
+// back to the stored alt rather than omitting the attribute.
+const altText = alt ?? media?.alt ?? '';
+---
+
+{
+  media && src && (
+    <img
+      src={src}
+      alt={altText}
+      width={media.width ?? undefined}
+      height={media.height ?? undefined}
+      sizes={sizes}
+      loading={priority ? 'eager' : 'lazy'}
+      decoding={priority ? 'sync' : 'async'}
+      fetchpriority={priority ? 'high' : 'auto'}
+      class={className}
+    />
+  )
+}

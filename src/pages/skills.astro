@@ -1,0 +1,159 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
+import EmptyState from '../components/ui/EmptyState.astro';
+import SkillMeter from '../components/skills/SkillMeter';
+import { getDb, getEnv } from '../lib/context';
+import { listSkillGroups } from '../lib/repositories/skills';
+import { breadcrumbSchema } from '../lib/seo';
+
+const db = getDb();
+const env = getEnv();
+
+const groups = (await listSkillGroups(db)).filter((group) => group.skills.length > 0);
+---
+
+<BaseLayout
+  title="Skills"
+  description="Programming languages, frameworks, cloud platforms, research areas, teaching areas, languages and professional certificates."
+  schemas={[
+    breadcrumbSchema(
+      [
+        { name: 'Home', url: '/' },
+        { name: 'Skills', url: '/skills' },
+      ],
+      env.PUBLIC_SITE_URL,
+    ),
+  ]}
+>
+  <PageHeader
+    eyebrow="Capabilities"
+    title="Skills &amp; expertise"
+    lead="The languages, frameworks, platforms and research areas I work in day to day — plus the courses I teach and the credentials behind them."
+  />
+
+  <div class="container-page space-y-12 pb-24">
+    {
+      groups.length === 0 ? (
+        <EmptyState
+          title="No skills recorded yet"
+          description="Skill groups appear here once they are added in the admin panel."
+        />
+      ) : (
+        groups.map((group) => (
+          <section class="reveal">
+            <div class="mb-6 flex items-end justify-between gap-4">
+              <div>
+                <h2 class="font-serif text-2xl font-semibold">{group.name}</h2>
+                {group.description && (
+                  <p class="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+                    {group.description}
+                  </p>
+                )}
+              </div>
+              <span class="shrink-0 font-mono text-xs text-ink-subtle">
+                {group.skills.length}
+              </span>
+            </div>
+
+            {/* Each group renders in the mode its category declares — a
+                proficiency bar is right for a programming language, and
+                completely wrong for a certificate or a research area. */}
+            {group.displayMode === 'bar' && (
+              <ul class="card divide-y divide-line px-5 py-2">
+                {group.skills.map((skill, index) => (
+                  <SkillMeter
+                    client:visible
+                    name={skill.name}
+                    level={skill.level}
+                    levelLabel={skill.levelLabel}
+                    description={skill.description}
+                    index={index}
+                  />
+                ))}
+              </ul>
+            )}
+
+            {group.displayMode === 'chip' && (
+              <ul class="flex flex-wrap gap-2">
+                {group.skills.map((skill) => (
+                  <li class="chip !px-3.5 !py-1.5 !text-sm">
+                    {skill.name}
+                    {skill.levelLabel && (
+                      <span class="text-ink-subtle">· {skill.levelLabel}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {group.displayMode === 'card' && (
+              <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {group.skills.map((skill) => (
+                  <li class="card card-interactive p-5">
+                    <h3 class="text-base font-semibold leading-snug">{skill.name}</h3>
+                    {skill.description && (
+                      <p class="mt-2 text-sm leading-relaxed text-ink-muted">
+                        {skill.description}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {group.displayMode === 'certificate' && (
+              <ul class="grid gap-4 sm:grid-cols-2">
+                {group.skills.map((skill) => (
+                  <li class="card card-interactive flex items-start gap-4 p-5">
+                    <div
+                      class="grid size-10 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent"
+                      aria-hidden="true"
+                    >
+                      <svg
+                        class="size-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="12" cy="8" r="5" />
+                        <path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5" />
+                      </svg>
+                    </div>
+                    <div class="min-w-0">
+                      <h3 class="text-[0.9375rem] font-semibold leading-snug">
+                        {skill.url ? (
+                          <a
+                            href={skill.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="transition-colors hover:text-accent"
+                          >
+                            {skill.name}
+                          </a>
+                        ) : (
+                          skill.name
+                        )}
+                      </h3>
+                      <p class="mt-1 text-sm text-ink-muted">
+                        {[skill.issuedBy, skill.issuedYear].filter(Boolean).join(' · ')}
+                      </p>
+                      {skill.credentialId && (
+                        <p class="mt-1 font-mono text-xs text-ink-subtle">
+                          ID {skill.credentialId}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))
+      )
+    }
+  </div>
+</BaseLayout>

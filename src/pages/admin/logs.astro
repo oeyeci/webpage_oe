@@ -1,0 +1,108 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb } from '../../lib/context';
+import { listAuditLogs } from '../../lib/repositories/contacts';
+import { timeAgo } from '../../lib/utils/date';
+
+const db = getDb();
+
+const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? '1') || 1);
+const perPage = 50;
+
+const { items, total } = await listAuditLogs(db, {
+  limit: perPage,
+  offset: (page - 1) * perPage,
+});
+
+const totalPages = Math.max(1, Math.ceil(total / perPage));
+
+/** Delete and failed-auth events are the ones worth spotting at a glance. */
+const tone = (action: string) =>
+  action.includes('delete') || action.includes('failed') || action.includes('rate_limited')
+    ? 'text-danger'
+    : action.includes('create') || action.includes('import')
+      ? 'text-success'
+      : 'text-ink';
+---
+
+<AdminLayout title="Audit log" description={`${total} recorded actions`} wide>
+  {
+    items.length === 0 ? (
+      <p class="card py-16 text-center text-sm text-ink-muted">No activity recorded yet.</p>
+    ) : (
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-surface-2 text-left">
+              <tr>
+                <th class="px-4 py-3 font-medium">Action</th>
+                <th class="px-4 py-3 font-medium">Entity</th>
+                <th class="px-4 py-3 font-medium">User</th>
+                <th class="px-4 py-3 font-medium">IP</th>
+                <th class="px-4 py-3 text-right font-medium">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((entry) => (
+                <tr class="border-t border-line">
+                  <td class={`whitespace-nowrap px-4 py-3 font-mono text-xs ${tone(entry.action)}`}>
+                    {entry.action}
+                  </td>
+                  <td class="px-4 py-3 text-xs text-ink-muted">
+                    {entry.entity ?? '—'}
+                    {entry.entityId && (
+                      <span class="text-ink-subtle"> #{entry.entityId}</span>
+                    )}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 text-xs text-ink-muted">
+                    {entry.userName ?? '—'}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-subtle">
+                    {entry.ipAddress ?? '—'}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 text-right text-xs text-ink-subtle">
+                    <time datetime={entry.createdAt.toISOString()}>
+                      {timeAgo(entry.createdAt)}
+                    </time>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  {
+    totalPages > 1 && (
+      <nav aria-label="Pagination" class="mt-6 flex items-center justify-center gap-2">
+        <a
+          href={`/admin/logs?page=${page - 1}`}
+          class:list={['btn btn-secondary', page === 1 && 'pointer-events-none opacity-40']}
+          aria-disabled={page === 1 ? 'true' : undefined}
+        >
+          Previous
+        </a>
+        <span class="px-3 text-sm text-ink-muted">
+          Page {page} of {totalPages}
+        </span>
+        <a
+          href={`/admin/logs?page=${page + 1}`}
+          class:list={[
+            'btn btn-secondary',
+            page === totalPages && 'pointer-events-none opacity-40',
+          ]}
+          aria-disabled={page === totalPages ? 'true' : undefined}
+        >
+          Next
+        </a>
+      </nav>
+    )
+  }
+
+  <p class="mt-6 text-xs leading-relaxed text-ink-subtle">
+    Every administrative mutation is recorded here. The log is trimmed to its most recent 5,000
+    entries. Contact-message bodies are never copied into it — deleting a message really deletes it.
+  </p>
+</AdminLayout>

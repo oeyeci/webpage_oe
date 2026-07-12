@@ -1,0 +1,221 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb, getUser } from '../../lib/context';
+import { formatBytes, getDashboardStats, topPosts } from '../../lib/repositories/stats';
+import { listAuditLogs } from '../../lib/repositories/contacts';
+import { publishDuePosts } from '../../lib/repositories/blog';
+import { pruneExpiredSessions } from '../../lib/auth/session';
+import { getPublicationStats } from '../../lib/repositories/publications';
+import { timeAgo } from '../../lib/utils/date';
+
+const db = getDb();
+const user = getUser(Astro)!;
+
+/**
+ * Housekeeping runs here rather than on a cron trigger.
+ *
+ * Astro's Cloudflare adapter owns the Worker entrypoint, so there is no clean
+ * place to add a `scheduled()` handler — and both of these jobs are *bookkeeping*,
+ * not correctness: a due-but-unflipped post is already public (the query treats
+ * it as live), and an expired session already fails verification. Doing the
+ * tidy-up when an admin opens the dashboard keeps the system honest without
+ * standing up a second Worker just to run two idempotent statements.
+ */
+const [promoted, pruned] = await Promise.all([publishDuePosts(db), pruneExpiredSessions(db)]);
+
+const [stats, pubStats, recent, popular] = await Promise.all([
+  getDashboardStats(db),
+  getPublicationStats(db),
+  listAuditLogs(db, { limit: 8 }),
+  topPosts(db, 5),
+]);
+
+const cards = [
+  {
+    label: 'Publications',
+    value: stats.publications.total,
+    hint: `${pubStats.byCategory.journal} journal · ${pubStats.byCategory.conference} conference`,
+    href: '/admin/publications',
+  },
+  {
+    label: 'Blog posts',
+    value: stats.posts.total,
+    hint: `${stats.posts.published} published · ${stats.posts.drafts} draft${
+      stats.posts.scheduled ? ` · ${stats.posts.scheduled} scheduled` : ''
+    }`,
+    href: '/admin/blog',
+  },
+  {
+    label: 'Activities',
+    value: stats.activities.total,
+    hint: `${stats.activities.published} published`,
+    href: '/admin/activities',
+  },
+  {
+    label: 'Messages',
+    value: stats.contacts.total,
+    hint: stats.contacts.unread > 0 ? `${stats.contacts.unread} unread` : 'All read',
+    href: '/admin/contacts',
+    highlight: stats.contacts.unread > 0,
+  },
+  {
+    label: 'Media',
+    value: stats.media.count,
+    hint: formatBytes(stats.media.bytes),
+    href: '/admin/media',
+  },
+  {
+    label: 'Skills',
+    value: stats.skills,
+    hint: `${stats.experiences} positions · ${stats.projects} projects`,
+    href: '/admin/skills',
+  },
+];
+
+const firstName = user.name.split(/\s+/)[0];
+const hour = new Date().getUTCHours();
+const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+---
+
+<AdminLayout title="Dashboard" description={`${greeting}, ${firstName}`} wide>
+  {
+    (promoted > 0 || pruned > 0) && (
+      <div class="mb-6 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink-muted">
+        Housekeeping:{' '}
+        {promoted > 0 && (
+          <>
+            <strong class="text-ink">{promoted}</strong> scheduled post
+            {promoted === 1 ? '' : 's'} promoted to published
+          </>
+        )}
+        {promoted > 0 && pruned > 0 && ' · '}
+        {pruned > 0 && (
+          <>
+            <strong class="text-ink">{pruned}</strong> expired session
+            {pruned === 1 ? '' : 's'} cleared
+          </>
+        )}
+        .
+      </div>
+    )
+  }
+
+  {/* ═══ Stat cards ═══════════════════════════════════════════════════ */}
+  <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {
+      cards.map((card) => (
+        <li>
+          <a
+            href={card.href}
+            class:list={[
+              'card card-interactive group block p-5',
+              card.highlight && 'border-accent/40 bg-accent-soft',
+            ]}
+          >
+            <div class="flex items-start justify-between">
+              <p class="text-xs font-medium uppercase tracking-wider text-ink-subtle">
+                {card.label}
+              </p>
+              <svg
+                class="size-4 text-ink-subtle transition-transform group-hover:translate-x-0.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </div>
+            <p
+              class:list={[
+                'mt-3 font-serif text-3xl font-semibold tabular-nums',
+                card.highlight && 'text-accent',
+              ]}
+            >
+              {card.value}
+            </p>
+            <p class="mt-1 text-sm text-ink-muted">{card.hint}</p>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+
+  {/* ═══ Quick actions ════════════════════════════════════════════════ */}
+  <div class="mt-8 flex flex-wrap gap-2">
+    <a href="/admin/blog/new" class="btn btn-primary">Write a post</a>
+    <a href="/admin/publications" class="btn btn-secondary">Import BibTeX</a>
+    <a href="/admin/activities/new" class="btn btn-secondary">Add an activity</a>
+    <a href="/admin/media" class="btn btn-secondary">Upload media</a>
+    <a href="/api/admin/backup" class="btn btn-ghost" download>Download backup</a>
+  </div>
+
+  <div class="mt-8 grid gap-6 lg:grid-cols-2">
+    {/* ═══ Recent activity ════════════════════════════════════════════ */}
+    <section class="card p-5">
+      <div class="flex items-center justify-between">
+        <h2 class="font-serif text-lg font-semibold">Recent activity</h2>
+        <a href="/admin/logs" class="text-sm text-accent hover:underline">All logs</a>
+      </div>
+
+      {
+        recent.items.length === 0 ? (
+          <p class="py-8 text-center text-sm text-ink-subtle">Nothing yet.</p>
+        ) : (
+          <ul class="mt-4 divide-y divide-line">
+            {recent.items.map((entry) => (
+              <li class="flex items-baseline justify-between gap-4 py-2.5">
+                <div class="min-w-0">
+                  <p class="truncate font-mono text-xs text-ink">{entry.action}</p>
+                  {entry.userName && (
+                    <p class="truncate text-xs text-ink-subtle">{entry.userName}</p>
+                  )}
+                </div>
+                <time
+                  datetime={entry.createdAt.toISOString()}
+                  class="shrink-0 text-xs text-ink-subtle"
+                >
+                  {timeAgo(entry.createdAt)}
+                </time>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+
+    {/* ═══ Most-read posts ════════════════════════════════════════════ */}
+    <section class="card p-5">
+      <div class="flex items-center justify-between">
+        <h2 class="font-serif text-lg font-semibold">Most read</h2>
+        <a href="/admin/blog" class="text-sm text-accent hover:underline">All posts</a>
+      </div>
+
+      {
+        popular.length === 0 ? (
+          <p class="py-8 text-center text-sm text-ink-subtle">No published posts yet.</p>
+        ) : (
+          <ul class="mt-4 divide-y divide-line">
+            {popular.map((post) => (
+              <li class="flex items-baseline justify-between gap-4 py-2.5">
+                <a
+                  href={`/blog/${post.slug}`}
+                  target="_blank"
+                  rel="noopener"
+                  class="min-w-0 truncate text-sm transition-colors hover:text-accent"
+                >
+                  {post.title}
+                </a>
+                <span class="shrink-0 font-mono text-xs tabular-nums text-ink-subtle">
+                  {post.viewCount.toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+  </div>
+</AdminLayout>

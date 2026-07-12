@@ -1,0 +1,124 @@
+---
+/**
+ * Every `<meta>` tag the site emits, in one place.
+ *
+ * Kept as a single component so that a page can never accidentally ship without
+ * a canonical URL or an OpenGraph image — the two omissions that quietly cost
+ * the most in search and in link previews.
+ */
+import type { SeoInput } from '../../lib/seo';
+
+interface Props extends SeoInput {
+  siteName: string;
+  locale?: string;
+  analyticsToken?: string;
+  /** JSON-LD objects; each is emitted as its own <script type="application/ld+json">. */
+  schemas?: Array<Record<string, unknown>>;
+}
+
+const {
+  title,
+  description,
+  canonical,
+  image,
+  type = 'website',
+  publishedTime,
+  modifiedTime,
+  tags = [],
+  noindex = false,
+  siteName,
+  locale = 'en',
+  analyticsToken,
+  schemas = [],
+} = Astro.props;
+
+// The home page's title is the site name; every other page is suffixed, which
+// keeps SERP titles under the ~60 characters Google will actually render.
+const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
+const ogImage = image ?? new URL('/og-default.png', Astro.site ?? canonical).toString();
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="generator" content={Astro.generator} />
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+{
+  !noindex && (
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+  )
+}
+
+{/* ── OpenGraph ─────────────────────────────────────────────────────────── */}
+<meta property="og:type" content={type} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={title} />
+<meta property="og:locale" content={locale === 'en' ? 'en_GB' : locale} />
+
+{type === 'article' && publishedTime && (
+  <meta property="article:published_time" content={publishedTime} />
+)}
+{type === 'article' && modifiedTime && (
+  <meta property="article:modified_time" content={modifiedTime} />
+)}
+{type === 'article' && tags.map((tag) => <meta property="article:tag" content={tag} />)}
+
+{/* ── Twitter / X ───────────────────────────────────────────────────────── */}
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />
+<meta name="twitter:image:alt" content={title} />
+
+{/* ── Icons & feeds ─────────────────────────────────────────────────────── */}
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  title={`${siteName} — Blog`}
+  href="/rss.xml"
+/>
+
+<meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0b0c0f" media="(prefers-color-scheme: dark)" />
+
+{/* ── Structured data ───────────────────────────────────────────────────── */}
+{
+  schemas.map((schema) => (
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify(schema)}
+    />
+  ))
+}
+
+{/* ── Cloudflare Web Analytics ──────────────────────────────────────────────
+     Privacy-first, cookieless, and deferred so it never competes with the page
+     for main-thread time. Omitted entirely when no token is configured. */}
+{
+  analyticsToken && (
+    <script
+      is:inline
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon={JSON.stringify({ token: analyticsToken })}
+    />
+  )
+}

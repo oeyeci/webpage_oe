@@ -1,0 +1,345 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/ui/PageHeader.astro';
+import EmptyState from '../../components/ui/EmptyState.astro';
+import PublicationCard from '../../components/publications/PublicationCard.astro';
+import CopyCitation from '../../components/publications/CopyCitation.astro';
+import PublicationStats from '../../components/publications/PublicationStats';
+import { getDb, getEnv } from '../../lib/context';
+import {
+  getPublicationStats,
+  groupByYear,
+  listPublications,
+} from '../../lib/repositories/publications';
+import { getSettings } from '../../lib/repositories/settings';
+import { scholarlyArticleSchema, breadcrumbSchema } from '../../lib/seo';
+
+const db = getDb();
+const env = getEnv();
+
+const [publications, stats, settings] = await Promise.all([
+  listPublications(db),
+  getPublicationStats(db),
+  getSettings(db),
+]);
+
+const grouped = groupByYear(publications);
+
+const CATEGORY_FILTERS = [
+  { value: 'all', label: 'All', count: publications.length },
+  { value: 'journal', label: 'Journal', count: stats.byCategory.journal },
+  { value: 'conference', label: 'Conference', count: stats.byCategory.conference },
+  { value: 'book', label: 'Books', count: stats.byCategory.book },
+  { value: 'chapter', label: 'Chapters', count: stats.byCategory.chapter },
+  { value: 'patent', label: 'Patents', count: stats.byCategory.patent },
+  { value: 'preprint', label: 'Preprints', count: stats.byCategory.preprint },
+  { value: 'thesis', label: 'Theses', count: stats.byCategory.thesis },
+].filter((f) => f.count > 0);
+
+// Structured data for the ten most recent — enough for Google to understand the
+// page without shipping a 90-entry JSON-LD blob to every visitor.
+const schemas = [
+  breadcrumbSchema(
+    [
+      { name: 'Home', url: '/' },
+      { name: 'Publications', url: '/publications' },
+    ],
+    env.PUBLIC_SITE_URL,
+  ),
+  ...publications.slice(0, 10).map((p) => scholarlyArticleSchema(p, env.PUBLIC_SITE_URL)),
+];
+---
+
+<BaseLayout
+  title="Publications"
+  description={`${stats.total} peer-reviewed publications in quantum machine learning, smart grids and computational materials science — with IEEE citations, DOIs and BibTeX for every entry.`}
+  schemas={schemas}
+>
+  <PageHeader
+    eyebrow="Research output"
+    title="Publications"
+    lead="Journal articles, conference papers, books and patents. Every entry carries an IEEE-formatted citation, a DOI where one exists, and a one-click BibTeX export."
+  >
+    <div class="mt-7 flex flex-wrap gap-3">
+      <a href="/publications.bib" class="btn btn-secondary" download>
+        <svg
+          class="size-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 3v12M7 11l5 5 5-5M5 21h14"></path>
+        </svg>
+        Download all BibTeX
+      </a>
+    </div>
+  </PageHeader>
+
+  <div class="container-page pb-20">
+    {
+      publications.length === 0 ? (
+        <EmptyState
+          title="No publications yet"
+          description="Publications appear here as soon as they are added in the admin panel."
+        />
+      ) : (
+        <>
+          {/* ═══ Statistics ═══════════════════════════════════════════════ */}
+          <div class="reveal">
+            <PublicationStats stats={stats} client:visible />
+          </div>
+
+          {/* ═══ Controls ═════════════════════════════════════════════════ */}
+          <div
+            class="sticky top-16 z-30 -mx-5 mt-12 border-y border-line bg-paper/85 px-5 py-3 backdrop-blur-lg md:-mx-8 md:px-8"
+          >
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              {/* Search */}
+              <div class="relative lg:w-80">
+                <label for="pub-search" class="sr-only">Search publications</label>
+                <svg
+                  class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-subtle"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="M20 20l-3.5-3.5"></path>
+                </svg>
+                <input
+                  type="search"
+                  id="pub-search"
+                  class="input !py-2 !pl-9 !text-sm"
+                  placeholder="Search title, author or venue…"
+                  autocomplete="off"
+                />
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                {/* Category filter — real radio inputs, so it works without JS
+                    and is keyboard-navigable by default. */}
+                <fieldset class="flex flex-wrap gap-1.5">
+                  <legend class="sr-only">Filter by publication type</legend>
+                  {CATEGORY_FILTERS.map((filter, index) => (
+                    <label
+                      class="chip cursor-pointer transition-colors has-[:checked]:border-transparent has-[:checked]:bg-accent has-[:checked]:text-white has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent dark:has-[:checked]:text-[#0b0c0f]"
+                    >
+                      <input
+                        type="radio"
+                        name="category"
+                        value={filter.value}
+                        checked={index === 0}
+                        class="sr-only js-category"
+                      />
+                      {filter.label}
+                      <span class="tabular-nums opacity-60">{filter.count}</span>
+                    </label>
+                  ))}
+                </fieldset>
+
+                <label for="pub-sort" class="sr-only">Sort publications</label>
+                <select id="pub-sort" class="input !w-auto !py-1.5 !text-sm">
+                  <option value="year-desc">Newest first</option>
+                  <option value="year-asc">Oldest first</option>
+                  <option value="title-asc">Title A–Z</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Live region: announces the result count to screen readers when
+                filters change, which is otherwise a completely silent update. */}
+            <p
+              id="pub-count"
+              role="status"
+              aria-live="polite"
+              class="mt-2 text-xs text-ink-subtle"
+            >
+              Showing all {publications.length} publications
+            </p>
+          </div>
+
+          {/* ═══ Grouped list ═════════════════════════════════════════════ */}
+          <div id="pub-list" class="mt-10 space-y-12">
+            {grouped.map((group) => (
+              <section class="js-year-group" data-year={group.year}>
+                <div class="mb-5 flex items-center gap-4">
+                  <h2 class="font-mono text-sm font-semibold tabular-nums text-ink-subtle">
+                    {group.year || 'Undated'}
+                  </h2>
+                  <hr class="rule flex-1" />
+                  <span class="js-year-count font-mono text-xs text-ink-subtle">
+                    {group.items.length}
+                  </span>
+                </div>
+
+                <div class="grid gap-4 lg:grid-cols-2">
+                  {group.items.map((publication) => (
+                    <PublicationCard
+                      publication={publication}
+                      showCitations={settings['publications.showCitationCounts']}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          {/* Shown when a search matches nothing. */}
+          <div id="pub-empty" hidden class="mt-10">
+            <EmptyState
+              title="No matching publications"
+              description="Try a different search term, or clear the filters."
+            />
+          </div>
+        </>
+      )
+    }
+  </div>
+
+  <CopyCitation />
+</BaseLayout>
+
+{/*
+  Filtering, search and sorting.
+
+  Done in ~60 lines of vanilla JS against the already-rendered DOM rather than
+  as a React island. The list is server-rendered so every publication is
+  crawlable and the page needs zero hydration; filtering only toggles `hidden`
+  on elements that already exist. Shipping 90 publications as JSON *and* the
+  React runtime to re-render them client-side would be strictly slower for an
+  identical result.
+*/}
+<script is:inline>
+  (() => {
+    const search = document.getElementById('pub-search');
+    const sort = document.getElementById('pub-sort');
+    const list = document.getElementById('pub-list');
+    const counter = document.getElementById('pub-count');
+    const empty = document.getElementById('pub-empty');
+    if (!list || !counter) return;
+
+    const cards = Array.from(list.querySelectorAll('article[data-category]'));
+    const groups = Array.from(list.querySelectorAll('.js-year-group'));
+    const radios = Array.from(document.querySelectorAll('.js-category'));
+    const total = cards.length;
+
+    let query = '';
+    let category = 'all';
+
+    const matches = (card) => {
+      if (category !== 'all' && card.dataset.category !== category) return false;
+      if (!query) return true;
+
+      const haystack = `${card.dataset.title} ${card.dataset.authors} ${card.dataset.venue}`;
+      // Every whitespace-separated term must appear somewhere — so "quantum
+      // grid" finds a paper about quantum methods for smart grids, and does not
+      // require the words to be adjacent.
+      return query.split(/\s+/).every((term) => haystack.includes(term));
+    };
+
+    const apply = () => {
+      let visible = 0;
+
+      for (const card of cards) {
+        const show = matches(card);
+        card.hidden = !show;
+        if (show) visible += 1;
+      }
+
+      // Hide a year heading once every card beneath it is filtered out.
+      for (const group of groups) {
+        const shown = group.querySelectorAll('article[data-category]:not([hidden])').length;
+        group.hidden = shown === 0;
+        const count = group.querySelector('.js-year-count');
+        if (count) count.textContent = String(shown);
+      }
+
+      if (empty) empty.hidden = visible > 0;
+
+      counter.textContent =
+        visible === total
+          ? `Showing all ${total} publications`
+          : `Showing ${visible} of ${total} publications`;
+    };
+
+    const sortCards = (mode) => {
+      const compare = {
+        'year-desc': (a, b) => Number(b.dataset.year) - Number(a.dataset.year),
+        'year-asc': (a, b) => Number(a.dataset.year) - Number(b.dataset.year),
+        'title-asc': (a, b) => a.dataset.title.localeCompare(b.dataset.title),
+      }[mode];
+
+      // Year grouping only makes sense in year order; sorting by title flattens
+      // the groups into one list.
+      const byTitle = mode === 'title-asc';
+
+      for (const group of groups) {
+        group.querySelector('div.grid')?.classList.toggle('hidden', byTitle);
+        group.querySelector('h2')?.parentElement?.classList.toggle('hidden', byTitle);
+      }
+
+      if (byTitle) {
+        let flat = document.getElementById('pub-flat');
+        if (!flat) {
+          flat = document.createElement('div');
+          flat.id = 'pub-flat';
+          flat.className = 'grid gap-4 lg:grid-cols-2';
+          list.appendChild(flat);
+        }
+        flat.hidden = false;
+        for (const card of [...cards].sort(compare)) flat.appendChild(card);
+      } else {
+        const flat = document.getElementById('pub-flat');
+        if (flat) flat.hidden = true;
+
+        // Return each card to its year group, in the requested order.
+        for (const group of groups) {
+          const grid = group.querySelector('div.grid');
+          if (!grid) continue;
+          const own = cards
+            .filter((card) => card.dataset.year === group.dataset.year)
+            .sort(compare);
+          for (const card of own) grid.appendChild(card);
+        }
+        groups
+          .sort((a, b) =>
+            mode === 'year-asc'
+              ? Number(a.dataset.year) - Number(b.dataset.year)
+              : Number(b.dataset.year) - Number(a.dataset.year),
+          )
+          .forEach((group) => list.appendChild(group));
+      }
+
+      apply();
+    };
+
+    // Debounce the search so a fast typist does not trigger a filter pass per
+    // keystroke across ~90 cards.
+    let timer;
+    search?.addEventListener('input', (event) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        query = event.target.value.trim().toLowerCase();
+        apply();
+      }, 120);
+    });
+
+    for (const radio of radios) {
+      radio.addEventListener('change', () => {
+        category = radio.value;
+        apply();
+      });
+    }
+
+    sort?.addEventListener('change', (event) => sortCards(event.target.value));
+
+    apply();
+  })();
+</script>

@@ -1,0 +1,333 @@
+/**
+ * Long-form article styling.
+ *
+ * Applied to server-rendered HTML that came out of the markdown pipeline, so
+ * these selectors target plain tags rather than utility classes — the CMS
+ * writes `<h2>`, not `<h2 class="…">`.
+ *
+ * (Deliberately hand-written rather than @tailwindcss/typography: the plugin's
+ * defaults would need overriding almost everywhere to match the design tokens,
+ * and it cannot style Shiki's dual-theme output or KaTeX at all.)
+ */
+
+.prose {
+  color: var(--ink);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  overflow-wrap: break-word;
+}
+
+/* ── Headings ─────────────────────────────────────────────────────────────── */
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  position: relative;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--ink);
+  scroll-margin-top: 6rem;
+}
+
+.prose h2 {
+  margin-top: 2.75rem;
+  margin-bottom: 1rem;
+  font-size: 1.75rem;
+  line-height: 1.25;
+  letter-spacing: -0.018em;
+}
+
+.prose h3 {
+  margin-top: 2.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.375rem;
+  line-height: 1.35;
+}
+
+.prose h4 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.125rem;
+}
+
+/* Heading anchors: revealed on hover/focus, never on touch-only reading. */
+.prose .heading-anchor {
+  position: absolute;
+  left: -1.25rem;
+  padding-right: 0.5rem;
+  color: var(--ink-subtle);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s var(--ease-out-quint);
+}
+
+.prose h2:hover .heading-anchor,
+.prose h3:hover .heading-anchor,
+.prose h4:hover .heading-anchor,
+.prose .heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+/* ── Body ─────────────────────────────────────────────────────────────────── */
+
+.prose p {
+  margin-block: 1.25rem;
+}
+
+.prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  transition: color 0.15s var(--ease-out-quint);
+}
+
+.prose a:hover {
+  color: var(--accent-hover);
+}
+
+.prose strong {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.prose ul,
+.prose ol {
+  margin-block: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.prose ul {
+  list-style: disc;
+}
+.prose ol {
+  list-style: decimal;
+}
+.prose li {
+  margin-block: 0.4rem;
+  padding-left: 0.25rem;
+}
+.prose li::marker {
+  color: var(--ink-subtle);
+}
+
+.prose ul[class*='contains-task-list'] {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+
+.prose blockquote {
+  margin-block: 1.75rem;
+  border-left: 3px solid var(--accent);
+  padding: 0.25rem 0 0.25rem 1.25rem;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.prose blockquote p:first-child {
+  margin-top: 0;
+}
+.prose blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+.prose hr {
+  margin-block: 2.5rem;
+  border: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--line), transparent);
+}
+
+/* ── Figures & media ──────────────────────────────────────────────────────── */
+
+.prose img,
+.prose video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--line);
+}
+
+.prose figure {
+  margin-block: 2rem;
+}
+
+.prose figcaption {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+/* YouTube and other embeds keep a 16:9 box so they never cause layout shift. */
+.prose iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  margin-block: 2rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+
+/* A wide table scrolls inside its own box — the page itself must never
+   scroll sideways on a phone. */
+.prose .table-scroll {
+  overflow-x: auto;
+  margin-block: 1.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.prose thead {
+  background-color: var(--surface-2);
+}
+
+.prose th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.prose td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-muted);
+  vertical-align: top;
+}
+
+.prose tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ── Code ─────────────────────────────────────────────────────────────────── */
+
+.prose :not(pre) > code {
+  background-color: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  padding: 0.15em 0.4em;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  color: var(--ink);
+}
+
+.prose pre {
+  margin-block: 1.75rem;
+  padding: 1.125rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  tab-size: 2;
+}
+
+.prose pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+}
+
+/**
+ * Shiki dual-theme output.
+ *
+ * Shiki emits BOTH themes' colours as CSS custom properties on every token.
+ * Swapping which variable is read means a theme toggle re-colours the code
+ * instantly — no re-highlighting, no second payload, and no flash of the wrong
+ * palette on load. This is why `defaultColor: false` is set in the renderer.
+ */
+.prose .shiki,
+.prose .shiki span {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+}
+
+.dark .prose .shiki,
+.dark .prose .shiki span {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+}
+
+/* ── Mathematics (KaTeX) ──────────────────────────────────────────────────── */
+
+.prose .katex {
+  font-size: 1.05em;
+}
+
+/* A long display equation scrolls inside its own box rather than widening the
+   page — the classic cause of horizontal scroll on mobile article pages. */
+.prose .katex-display {
+  margin-block: 1.75rem;
+  padding-block: 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* KaTeX renders both HTML and MathML for accessibility; only one must be
+   visible or screen readers announce the formula twice. */
+.prose .katex .katex-mathml {
+  position: absolute;
+  clip: rect(1px, 1px, 1px, 1px);
+  padding: 0;
+  border: 0;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+}
+
+/* ── Footnotes & references ───────────────────────────────────────────────── */
+
+.prose .footnotes {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.9375rem;
+  color: var(--ink-muted);
+}
+
+.prose .footnotes h2 {
+  font-size: 1.125rem;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.prose .footnotes li {
+  margin-block: 0.5rem;
+}
+
+.prose [data-footnote-ref] {
+  font-size: 0.75em;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0 0.15em;
+  vertical-align: super;
+}
+
+.prose [data-footnote-backref] {
+  text-decoration: none;
+  margin-left: 0.25rem;
+}
+
+/* ── First-paragraph lead ─────────────────────────────────────────────────── */
+
+.prose > p:first-of-type {
+  font-size: 1.1875rem;
+  line-height: 1.65;
+  color: var(--ink-muted);
+}

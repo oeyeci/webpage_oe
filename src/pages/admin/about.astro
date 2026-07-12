@@ -1,0 +1,95 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import ProfileForm from '../../components/admin/ProfileForm';
+import TabbedResources from '../../components/admin/TabbedResources';
+import { getDb } from '../../lib/context';
+import {
+  getProfile,
+  listAwards,
+  listEducation,
+  listMemberships,
+  listResearchInterests,
+} from '../../lib/repositories/about';
+import {
+  awardConfig,
+  educationConfig,
+  membershipConfig,
+  researchInterestConfig,
+} from '../../lib/admin/resource-configs';
+
+const db = getDb();
+
+const [profile, education, awards, memberships, interests] = await Promise.all([
+  getProfile(db),
+  listEducation(db),
+  listAwards(db),
+  listMemberships(db),
+  listResearchInterests(db),
+]);
+
+const initial = {
+  fullName: profile?.fullName ?? '',
+  honorific: profile?.honorific ?? '',
+  title: profile?.title ?? '',
+  institution: profile?.institution ?? '',
+  department: profile?.department ?? '',
+  tagline: profile?.tagline ?? '',
+  summary: profile?.summary ?? '',
+  professionalBioMd: profile?.professionalBioMd ?? '',
+  academicBioMd: profile?.academicBioMd ?? '',
+  email: profile?.email ?? '',
+  phone: profile?.phone ?? '',
+  office: profile?.office ?? '',
+  address: profile?.address ?? '',
+  googleMapsUrl: profile?.googleMapsUrl ?? '',
+  cvMediaId: profile?.cvMediaId ?? null,
+  orcid: profile?.orcid ?? '',
+  googleScholar: profile?.googleScholar ?? '',
+  researchGate: profile?.researchGate ?? '',
+  github: profile?.github ?? '',
+  linkedin: profile?.linkedin ?? '',
+  twitter: profile?.twitter ?? '',
+};
+
+const tabs = [
+  {
+    id: 'education',
+    label: 'Education',
+    config: educationConfig,
+    rows: education as Array<Record<string, unknown> & { id: number }>,
+  },
+  {
+    id: 'interests',
+    label: 'Research interests',
+    config: researchInterestConfig,
+    rows: interests as Array<Record<string, unknown> & { id: number }>,
+  },
+  {
+    id: 'awards',
+    label: 'Awards',
+    config: awardConfig,
+    rows: awards as Array<Record<string, unknown> & { id: number }>,
+  },
+  {
+    id: 'memberships',
+    label: 'Memberships',
+    config: membershipConfig,
+    rows: memberships as Array<Record<string, unknown> & { id: number }>,
+  },
+];
+---
+
+<AdminLayout title="About" description="Profile, biography and the About page sections" wide>
+  <ProfileForm initial={initial} client:load />
+
+  <hr class="my-10 border-line" />
+
+  <h2 class="mb-5 font-serif text-xl font-semibold">About page sections</h2>
+  <TabbedResources tabs={tabs} client:load />
+
+  <p class="mt-8 text-xs leading-relaxed text-ink-subtle">
+    Portrait and other predefined images are managed under
+    <a href="/admin/media" class="text-accent hover:underline">Media → Image slots</a>, where
+    uploads are cropped to fit and validated against each slot's required dimensions.
+  </p>
+</AdminLayout>

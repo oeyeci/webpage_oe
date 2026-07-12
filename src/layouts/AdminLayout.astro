@@ -1,0 +1,239 @@
+---
+/**
+ * Admin shell: sidebar, header, and the page body.
+ *
+ * The middleware has already guaranteed a signed-in user by the time this
+ * renders (`/admin/*` redirects to the login page otherwise), so `user` is
+ * non-null here — but every admin *API* route re-checks independently, because
+ * a layout is not a security boundary.
+ */
+import '../styles/global.css';
+
+import { ADMIN_NAV } from '../lib/site';
+import { getDb, getUser } from '../lib/context';
+import { listContacts } from '../lib/repositories/contacts';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Buttons rendered on the right of the page header. */
+  wide?: boolean;
+}
+
+const { title, description, wide = false } = Astro.props;
+
+const user = getUser(Astro)!;
+const db = getDb();
+const { unread } = await listContacts(db, { limit: 1 });
+
+const pathname = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
+
+const initials = user.name
+  .split(/\s+/)
+  .slice(0, 2)
+  .map((part) => part[0]?.toUpperCase() ?? '')
+  .join('');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Admin</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+        root.classList.add('js');
+        try {
+          const stored = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (!stored && prefersDark)) root.classList.add('dark');
+        } catch {}
+      })();
+    </script>
+  </head>
+
+  <body class="min-h-screen bg-paper text-ink antialiased">
+    <a href="#admin-main" class="skip-link">Skip to content</a>
+
+    <div class="flex min-h-screen">
+      {/* ═══ Sidebar ═══════════════════════════════════════════════════ */}
+      <aside
+        id="admin-sidebar"
+        class="fixed inset-y-0 left-0 z-50 hidden w-64 shrink-0 flex-col border-r border-line bg-surface lg:flex"
+      >
+        <div class="flex h-16 items-center gap-2.5 border-b border-line px-5">
+          <span
+            class="grid size-8 place-items-center rounded-lg bg-ink font-serif text-xs font-semibold text-paper"
+            aria-hidden="true">ÖE</span
+          >
+          <span class="font-serif text-sm font-semibold">Admin</span>
+        </div>
+
+        <nav aria-label="Admin" class="flex-1 overflow-y-auto p-3">
+          <ul class="space-y-0.5">
+            {
+              ADMIN_NAV.map((item) => (
+                <li>
+                  <a
+                    href={item.href}
+                    aria-current={isActive(item.href) ? 'page' : undefined}
+                    class="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink aria-[current=page]:bg-accent-soft aria-[current=page]:font-medium aria-[current=page]:text-accent"
+                  >
+                    <span>{item.label}</span>
+                    {item.href === '/admin/contacts' && unread > 0 && (
+                      <span class="grid min-w-5 place-items-center rounded-full bg-accent px-1.5 text-xs font-semibold text-white dark:text-[#0b0c0f]">
+                        {unread}
+                      </span>
+                    )}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+
+          <hr class="my-4 border-line" />
+
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            View site
+            <svg
+              class="size-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M7 17L17 7M9 7h8v8"></path>
+            </svg>
+          </a>
+        </nav>
+
+        <div class="border-t border-line p-3">
+          <div class="flex items-center gap-3 rounded-lg px-2 py-2">
+            <span
+              class="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-semibold text-accent"
+              aria-hidden="true">{initials}</span
+            >
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-medium">{user.name}</p>
+              <p class="truncate text-xs text-ink-subtle">{user.email}</p>
+            </div>
+          </div>
+          <button type="button" id="logout" class="btn btn-ghost mt-1 w-full !justify-start">
+            Sign out
+          </button>
+        </div>
+      </aside>
+
+      {/* ═══ Main ══════════════════════════════════════════════════════ */}
+      <div class="flex min-w-0 flex-1 flex-col lg:pl-64">
+        <header
+          class="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-line bg-paper/85 px-5 backdrop-blur-lg md:px-8"
+        >
+          <button
+            type="button"
+            id="sidebar-toggle"
+            class="btn btn-ghost size-9 !p-0 lg:hidden"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="admin-sidebar"
+          >
+            <svg
+              class="size-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16"></path>
+            </svg>
+          </button>
+
+          <div class="min-w-0 flex-1">
+            <h1 class="truncate font-serif text-lg font-semibold">{title}</h1>
+            {description && <p class="truncate text-xs text-ink-subtle">{description}</p>}
+          </div>
+
+          <slot name="actions" />
+
+          <button
+            type="button"
+            id="theme-toggle"
+            class="btn btn-ghost size-9 shrink-0 !p-0"
+            aria-label="Toggle theme"
+          >
+            <svg
+              class="size-[18px] dark:hidden"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+            </svg>
+            <svg
+              class="hidden size-[18px] dark:block"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+        </header>
+
+        <main id="admin-main" tabindex="-1" class={wide ? 'p-5 md:p-8' : 'mx-auto w-full max-w-5xl p-5 md:p-8'}>
+          <slot />
+        </main>
+      </div>
+    </div>
+
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+
+        document.getElementById('theme-toggle')?.addEventListener('click', () => {
+          const isDark = root.classList.toggle('dark');
+          try {
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+          } catch {}
+        });
+
+        const sidebar = document.getElementById('admin-sidebar');
+        const toggle = document.getElementById('sidebar-toggle');
+        toggle?.addEventListener('click', () => {
+          const open = sidebar?.classList.toggle('hidden') === false;
+          sidebar?.classList.toggle('flex', open);
+          toggle.setAttribute('aria-expanded', String(open));
+        });
+
+        document.getElementById('logout')?.addEventListener('click', async () => {
+          await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+          window.location.href = '/admin/login';
+        });
+      })();
+    </script>
+  </body>
+</html>

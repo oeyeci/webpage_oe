@@ -1,0 +1,112 @@
+---
+import { NAV_ITEMS, socialLinks } from '../../lib/site';
+import type { Profile } from '../../lib/db/schema';
+
+interface Props {
+  profile: Profile | null;
+  siteName: string;
+}
+
+const { profile, siteName } = Astro.props;
+const socials = profile ? socialLinks(profile) : [];
+const year = new Date().getUTCFullYear();
+---
+
+<footer class="mt-24 border-t border-line bg-surface">
+  <div class="container-page py-14">
+    <div class="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
+      <div>
+        <p class="font-serif text-lg font-semibold">{siteName}</p>
+        {
+          profile?.title && (
+            <p class="mt-1.5 max-w-sm text-sm leading-relaxed text-ink-muted">
+              {profile.title}
+              {profile.institution && <>, {profile.institution}</>}
+            </p>
+          )
+        }
+        {
+          socials.length > 0 && (
+            <ul class="mt-5 flex flex-wrap gap-2">
+              {socials.map((social) => (
+                <li>
+                  <a
+                    href={social.href}
+                    class="chip transition-colors hover:border-line-strong hover:text-ink"
+                    rel={social.href.startsWith('mailto:') ? undefined : 'me noopener noreferrer'}
+                    target={social.href.startsWith('mailto:') ? undefined : '_blank'}
+                  >
+                    {social.label}
+                    {!social.href.startsWith('mailto:') && (
+                      <span class="sr-only">(opens in a new tab)</span>
+                    )}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </div>
+
+      <nav aria-label="Footer">
+        <h2 class="font-sans text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+          Explore
+        </h2>
+        <ul class="mt-4 space-y-2.5">
+          {
+            NAV_ITEMS.map((item) => (
+              <li>
+                <a
+                  href={item.href}
+                  class="text-sm text-ink-muted transition-colors hover:text-ink"
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <div>
+        <h2 class="font-sans text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+          Resources
+        </h2>
+        <ul class="mt-4 space-y-2.5">
+          <li>
+            <a href="/rss.xml" class="text-sm text-ink-muted transition-colors hover:text-ink">
+              RSS feed
+            </a>
+          </li>
+          <li>
+            <a
+              href="/publications.bib"
+              class="text-sm text-ink-muted transition-colors hover:text-ink"
+            >
+              BibTeX library
+            </a>
+          </li>
+          <li>
+            <a href="/sitemap.xml" class="text-sm text-ink-muted transition-colors hover:text-ink">
+              Sitemap
+            </a>
+          </li>
+          <li>
+            <a href="/privacy" class="text-sm text-ink-muted transition-colors hover:text-ink">
+              Privacy policy
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div
+      class="mt-12 flex flex-col items-start justify-between gap-3 border-t border-line pt-6 sm:flex-row sm:items-center"
+    >
+      <p class="text-sm text-ink-subtle">© {year} {siteName}. All rights reserved.</p>
+      <p class="text-sm text-ink-subtle">
+        Built on Cloudflare Workers, D1 and R2.
+      </p>
+    </div>
+  </div>
+</footer>

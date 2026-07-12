@@ -1,0 +1,51 @@
+---
+import '../../styles/global.css';
+import LoginForm from '../../components/admin/LoginForm';
+
+// Only same-site admin paths are honoured; the server re-validates this too.
+const raw = Astro.url.searchParams.get('next') ?? undefined;
+const next = raw && raw.startsWith('/admin') && !raw.startsWith('//') ? raw : undefined;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign in · Admin</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+        root.classList.add('js');
+        try {
+          const stored = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (!stored && prefersDark)) root.classList.add('dark');
+        } catch {}
+      })();
+    </script>
+  </head>
+
+  <body class="min-h-screen bg-paper text-ink antialiased">
+    <main class="grid min-h-screen place-items-center px-5 py-12">
+      <div class="w-full max-w-sm">
+        <a href="/" class="mb-8 flex items-center justify-center gap-2.5">
+          <span
+            class="grid size-9 place-items-center rounded-lg bg-ink font-serif text-sm font-semibold text-paper"
+            aria-hidden="true">ÖE</span
+          >
+          <span class="font-serif text-base font-semibold">Önder Eyecioğlu</span>
+        </a>
+
+        <LoginForm next={next} client:load />
+
+        <p class="mt-6 text-center text-sm">
+          <a href="/" class="text-ink-muted transition-colors hover:text-ink">← Back to the site</a>
+        </p>
+      </div>
+    </main>
+  </body>
+</html>

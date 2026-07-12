@@ -1,0 +1,41 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import PublicationsManager from '../../components/admin/PublicationsManager';
+import { getDb } from '../../lib/context';
+import { listPublications } from '../../lib/repositories/publications';
+
+const db = getDb();
+
+// Server-rendered first paint, then hydrated. The manager never has to show a
+// loading spinner on load — the data is already in the HTML.
+const publications = await listPublications(db, { includeUnpublished: true });
+
+const initial = publications.map((p) => ({
+  id: p.id,
+  citeKey: p.citeKey,
+  category: p.category,
+  entryType: p.entryType,
+  title: p.title,
+  authorsRaw: p.authorsRaw,
+  journal: p.journal,
+  booktitle: p.booktitle,
+  year: p.year,
+  doi: p.doi,
+  pdfUrl: p.pdfUrl,
+  codeUrl: p.codeUrl,
+  projectUrl: p.projectUrl,
+  slidesUrl: p.slidesUrl,
+  citationCount: p.citationCount,
+  isFeatured: p.isFeatured,
+  isPublished: p.isPublished,
+  ieeeCitation: p.ieeeCitation,
+}));
+---
+
+<AdminLayout
+  title="Publications"
+  description={`${initial.length} entries — add more by pasting BibTeX`}
+  wide
+>
+  <PublicationsManager initial={initial} client:load />
+</AdminLayout>

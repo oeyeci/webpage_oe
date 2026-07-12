@@ -1,0 +1,168 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/ui/PageHeader.astro';
+import EmptyState from '../../components/ui/EmptyState.astro';
+import MediaImage from '../../components/ui/MediaImage.astro';
+import { getDb, getEnv } from '../../lib/context';
+import { listActivities, listActivityCategories } from '../../lib/repositories/activities';
+import { breadcrumbSchema } from '../../lib/seo';
+import { formatLongDate, parseIsoDate } from '../../lib/utils/date';
+
+const db = getDb();
+const env = getEnv();
+
+const categorySlug = Astro.url.searchParams.get('category') ?? undefined;
+
+const [activities, categories] = await Promise.all([
+  listActivities(db, { categorySlug }),
+  listActivityCategories(db),
+]);
+
+/** Group by calendar year so the page reads as a chronology. */
+const grouped = activities.reduce<Map<number, typeof activities>>((map, activity) => {
+  const year = parseIsoDate(activity.activityDate)?.getUTCFullYear() ?? 0;
+  const list = map.get(year) ?? [];
+  list.push(activity);
+  map.set(year, list);
+  return map;
+}, new Map());
+
+const years = [...grouped.entries()].sort((a, b) => b[0] - a[0]);
+---
+
+<BaseLayout
+  title="Activities"
+  description="Conference talks, invited seminars, workshops, editorial service and academic outreach."
+  schemas={[
+    breadcrumbSchema(
+      [
+        { name: 'Home', url: '/' },
+        { name: 'Activities', url: '/activities' },
+      ],
+      env.PUBLIC_SITE_URL,
+    ),
+  ]}
+>
+  <PageHeader
+    eyebrow="Engagement"
+    title="Activities"
+    lead="Conference talks, invited seminars, workshops, editorial service and outreach."
+  />
+
+  <div class="container-page pb-24">
+    {
+      categories.length > 0 && (
+        <nav aria-label="Activity categories" class="reveal border-b border-line pb-6">
+          <ul class="flex flex-wrap gap-1.5">
+            <li>
+              <a
+                href="/activities"
+                aria-current={!categorySlug ? 'true' : undefined}
+                class="chip transition-colors hover:border-accent hover:text-accent aria-[current]:border-transparent aria-[current]:bg-accent aria-[current]:text-white dark:aria-[current]:text-[#0b0c0f]"
+              >
+                All
+              </a>
+            </li>
+            {categories.map((category) => (
+              <li>
+                <a
+                  href={`/activities?category=${category.slug}`}
+                  aria-current={categorySlug === category.slug ? 'true' : undefined}
+                  class="chip transition-colors hover:border-accent hover:text-accent aria-[current]:border-transparent aria-[current]:bg-accent aria-[current]:text-white dark:aria-[current]:text-[#0b0c0f]"
+                >
+                  {category.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
+
+    {
+      activities.length === 0 ? (
+        <div class="mt-10">
+          <EmptyState
+            title="No activities yet"
+            description="Talks, seminars and workshops appear here as they are added."
+            action={categorySlug ? { label: 'Show all', href: '/activities' } : undefined}
+          />
+        </div>
+      ) : (
+        <div class="mt-12 space-y-14">
+          {years.map(([year, items]) => (
+            <section>
+              <div class="mb-6 flex items-center gap-4">
+                <h2 class="font-mono text-sm font-semibold tabular-nums text-ink-subtle">
+                  {year || 'Undated'}
+                </h2>
+                <hr class="rule flex-1" />
+                <span class="font-mono text-xs text-ink-subtle">{items.length}</span>
+              </div>
+
+              <ul class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {items.map((activity) => (
+                  <li class="reveal card card-interactive group flex flex-col overflow-hidden">
+                    <a href={`/activities/${activity.slug}`} class="flex h-full flex-col">
+                      {activity.cover ? (
+                        <MediaImage
+                          media={activity.cover}
+                          thumb
+                          sizes="(min-width: 1024px) 22rem, (min-width: 768px) 45vw, 100vw"
+                          class="aspect-video w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <div class="aspect-video w-full bg-surface-2" aria-hidden="true" />
+                      )}
+
+                      <div class="flex flex-1 flex-col p-5">
+                        <div class="flex flex-wrap items-center gap-2">
+                          {activity.category && (
+                            <span class="chip !py-0.5 !text-xs">{activity.category.name}</span>
+                          )}
+                          <time
+                            datetime={activity.activityDate}
+                            class="text-xs text-ink-subtle"
+                          >
+                            {formatLongDate(activity.activityDate)}
+                          </time>
+                        </div>
+
+                        <h3 class="mt-3 text-lg leading-snug transition-colors group-hover:text-accent">
+                          {activity.title}
+                        </h3>
+
+                        {activity.excerpt && (
+                          <p class="mt-2 line-clamp-2 flex-1 text-sm leading-relaxed text-ink-muted">
+                            {activity.excerpt}
+                          </p>
+                        )}
+
+                        {activity.location && (
+                          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-subtle">
+                            <svg
+                              class="size-3.5 shrink-0"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.75"
+                              aria-hidden="true"
+                            >
+                              <path d="M12 21s-7-5.5-7-11a7 7 0 1114 0c0 5.5-7 11-7 11z" />
+                              <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            <span class="truncate">{activity.location}</span>
+                          </p>
+                        )}
+                      </div>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</BaseLayout>

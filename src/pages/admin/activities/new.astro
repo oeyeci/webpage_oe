@@ -1,0 +1,53 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ActivityEditor from '../../../components/admin/ActivityEditor';
+import { getDb, getEnv } from '../../../lib/context';
+import { listActivityCategories } from '../../../lib/repositories/activities';
+import { listMedia } from '../../../lib/storage/r2';
+
+const db = getDb();
+const env = getEnv();
+
+const [categories, media] = await Promise.all([
+  listActivityCategories(db),
+  listMedia(db, { limit: 200 }),
+]);
+
+const initial = {
+  title: '',
+  slug: '',
+  activityDate: new Date().toISOString().slice(0, 10),
+  endDate: '',
+  location: '',
+  categoryId: null,
+  excerpt: '',
+  descriptionMd: '',
+  coverMediaId: null,
+  galleryMediaIds: [],
+  url: '',
+  isFeatured: false,
+  isPublished: true,
+};
+---
+
+<AdminLayout title="New activity" description="A talk, seminar, workshop or event" wide>
+  <ActivityEditor
+    initial={initial}
+    categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+    media={media.map((m) => ({
+      id: m.id,
+      r2Key: m.r2Key,
+      thumbKey: m.thumbKey,
+      filename: m.filename,
+      mimeType: m.mimeType,
+      size: m.size,
+      width: m.width,
+      height: m.height,
+      alt: m.alt,
+      caption: m.caption,
+      folder: m.folder,
+    }))}
+    mediaBase={env.MEDIA_PUBLIC_BASE}
+    client:load
+  />
+</AdminLayout>
