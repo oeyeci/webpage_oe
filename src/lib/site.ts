@@ -31,13 +31,20 @@ export const ADMIN_NAV = [
 
 /** Social profiles, resolved against the profile row. Empty values are dropped. */
 export interface SocialLink {
-  key: string;
+  /** Key into BRAND_MARKS — drives which logo is rendered. */
+  brand: string;
   label: string;
   href: string;
-  /** Lucide icon name, or `null` for links that use a text badge. */
-  icon: string | null;
 }
 
+/**
+ * Ordered deliberately: the academic identifiers come first.
+ *
+ * On a researcher's site ORCID and Google Scholar are the links people actually
+ * follow — they are the professional credential. GitHub and LinkedIn are
+ * supporting evidence, and email is the fallback. Sorting them by what a
+ * visiting academic is looking for beats sorting them by what a startup would.
+ */
 export function socialLinks(profile: {
   orcid?: string | null;
   googleScholar?: string | null;
@@ -47,17 +54,17 @@ export function socialLinks(profile: {
   twitter?: string | null;
   email?: string | null;
 }): SocialLink[] {
-  const entries: Array<[string, string, string | null | undefined, string | null]> = [
-    ['orcid', 'ORCID', profile.orcid, null],
-    ['scholar', 'Google Scholar', profile.googleScholar, 'GraduationCap'],
-    ['researchgate', 'ResearchGate', profile.researchGate, null],
-    ['github', 'GitHub', profile.github, 'Github'],
-    ['linkedin', 'LinkedIn', profile.linkedin, 'Linkedin'],
-    ['twitter', 'X', profile.twitter, 'Twitter'],
-    ['email', 'Email', profile.email ? `mailto:${profile.email}` : null, 'Mail'],
+  const entries: Array<[string, string, string | null | undefined]> = [
+    ['orcid', 'ORCID', profile.orcid],
+    ['googlescholar', 'Google Scholar', profile.googleScholar],
+    ['researchgate', 'ResearchGate', profile.researchGate],
+    ['github', 'GitHub', profile.github],
+    ['linkedin', 'LinkedIn', profile.linkedin],
+    ['x', 'X', profile.twitter],
+    ['email', 'Email', profile.email ? `mailto:${profile.email}` : null],
   ];
 
   return entries
     .filter(([, , href]) => Boolean(href))
-    .map(([key, label, href, icon]) => ({ key, label, href: href!, icon }));
+    .map(([brand, label, href]) => ({ brand, label, href: href! }));
 }

@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Section from '../components/ui/Section.astro';
 import MediaImage from '../components/ui/MediaImage.astro';
+import SocialLink from '../components/ui/SocialLink.astro';
 import PublicationCard from '../components/publications/PublicationCard.astro';
 import CopyCitation from '../components/publications/CopyCitation.astro';
 import { getDb } from '../lib/context';
@@ -108,16 +109,7 @@ const counters = [
               <ul class="reveal mt-8 flex flex-wrap gap-2">
                 {socials.map((social) => (
                   <li>
-                    <a
-                      href={social.href}
-                      class="chip transition-colors hover:border-accent hover:text-accent"
-                      target={social.href.startsWith('mailto:') ? undefined : '_blank'}
-                      rel={
-                        social.href.startsWith('mailto:') ? undefined : 'me noopener noreferrer'
-                      }
-                    >
-                      {social.label}
-                    </a>
+                    <SocialLink brand={social.brand} label={social.label} href={social.href} />
                   </li>
                 ))}
               </ul>

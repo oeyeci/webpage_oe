@@ -1,0 +1,174 @@
+---
+/**
+ * A social/academic profile link, rendered as a brand mark plus its name.
+ *
+ * The icon is **monochrome by default and takes its brand colour on hover**.
+ * Six saturated logos sitting in a row (ORCID's lime, ResearchGate's teal,
+ * Scholar's blue…) would fight the restrained ink/paper/indigo palette the rest
+ * of the site is built on. Reserving colour for the hover state keeps the row
+ * calm at rest and still gives the instant brand recognition the logos exist
+ * for.
+ *
+ * The brand colour is passed as a CSS custom property so the hover rule lives
+ * in CSS rather than in an inline style per element.
+ */
+import { brandMark } from '../../lib/brand-marks';
+
+interface Props {
+  /** `orcid`, `googlescholar`, `researchgate`, `github`, `linkedin`, `x`, `email` */
+  brand: string;
+  label: string;
+  href: string;
+  /** `chip` for the hero/footer rows, `row` for the contact sidebar. */
+  variant?: 'chip' | 'row' | 'icon';
+}
+
+const { brand, label, href, variant = 'chip' } = Astro.props;
+
+const mark = brandMark(brand);
+const isMailto = href.startsWith('mailto:');
+---
+
+{
+  mark && (
+    <a
+      href={href}
+      class:list={['social-link', `social-link--${variant}`]}
+      style={`--brand: ${mark.hex}`}
+      target={isMailto ? undefined : '_blank'}
+      rel={isMailto ? undefined : 'me noopener noreferrer'}
+    >
+      <svg
+        class="social-link__mark"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d={mark.path} />
+      </svg>
+
+      {variant !== 'icon' && <span>{label}</span>}
+
+      {variant === 'icon' && <span class="sr-only">{label}</span>}
+
+      {variant === 'row' && (
+        <svg
+          class="social-link__arrow"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M7 17L17 7M9 7h8v8" />
+        </svg>
+      )}
+
+      {!isMailto && <span class="sr-only">(opens in a new tab)</span>}
+    </a>
+  )
+}
+
+<style>
+  .social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--ink-muted);
+    transition:
+      color 0.18s var(--ease-out-quint),
+      border-color 0.18s var(--ease-out-quint),
+      background-color 0.18s var(--ease-out-quint);
+  }
+
+  .social-link__mark {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    /* The mark alone carries the brand colour on hover; the label stays ink,
+       which keeps the text legible against every one of these hues. */
+    transition: color 0.18s var(--ease-out-quint);
+  }
+
+  .social-link:hover .social-link__mark,
+  .social-link:focus-visible .social-link__mark {
+    color: var(--brand);
+  }
+
+  /* GitHub's mark is near-black and X's is pure black — both vanish against the
+     dark theme's background. Fall back to the foreground colour there. */
+  :global(.dark) .social-link[style*='#181717']:hover .social-link__mark,
+  :global(.dark) .social-link[style*='#000000']:hover .social-link__mark {
+    color: var(--ink);
+  }
+
+  /* ── Chip: the hero and footer rows ──────────────────────────────────── */
+  .social-link--chip {
+    border-radius: 9999px;
+    border: 1px solid var(--line);
+    background-color: var(--surface);
+    padding: 0.3125rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .social-link--chip:hover,
+  .social-link--chip:focus-visible {
+    color: var(--ink);
+    border-color: var(--line-strong);
+  }
+
+  /* ── Row: the contact-page sidebar ───────────────────────────────────── */
+  .social-link--row {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .social-link--row:hover,
+  .social-link--row:focus-visible {
+    background-color: var(--surface-2);
+    color: var(--ink);
+  }
+
+  .social-link__arrow {
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-left: auto;
+    flex-shrink: 0;
+    color: var(--ink-subtle);
+    transition: transform 0.18s var(--ease-out-quint);
+  }
+
+  .social-link--row:hover .social-link__arrow {
+    transform: translateX(2px);
+  }
+
+  /* ── Icon-only ───────────────────────────────────────────────────────── */
+  .social-link--icon {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.625rem;
+    border: 1px solid var(--line);
+    background-color: var(--surface);
+  }
+
+  .social-link--icon .social-link__mark {
+    width: 1.0625rem;
+    height: 1.0625rem;
+  }
+
+  .social-link--icon:hover,
+  .social-link--icon:focus-visible {
+    border-color: var(--line-strong);
+  }
+</style>

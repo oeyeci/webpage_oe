@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/ui/PageHeader.astro';
 import ContactForm from '../components/contact/ContactForm';
+import SocialLink from '../components/ui/SocialLink.astro';
 import { getDb, getEnv } from '../lib/context';
 import { getProfile } from '../lib/repositories/about';
 import { getSettings } from '../lib/repositories/settings';
@@ -199,30 +200,15 @@ const details = [
               </h2>
               <ul class="mt-4 space-y-1">
                 {socials
-                  .filter((social) => social.key !== 'email')
+                  .filter((social) => social.brand !== 'email')
                   .map((social) => (
                     <li>
-                      <a
+                      <SocialLink
+                        brand={social.brand}
+                        label={social.label}
                         href={social.href}
-                        target="_blank"
-                        rel="me noopener noreferrer"
-                        class="group flex items-center justify-between rounded-lg px-2 py-2 text-sm transition-colors hover:bg-surface-2"
-                      >
-                        <span class="font-medium">{social.label}</span>
-                        <svg
-                          class="size-3.5 text-ink-subtle transition-transform group-hover:translate-x-0.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M7 17L17 7M9 7h8v8" />
-                        </svg>
-                        <span class="sr-only">(opens in a new tab)</span>
-                      </a>
+                        variant="row"
+                      />
                     </li>
                   ))}
               </ul>

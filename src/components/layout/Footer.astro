@@ -1,5 +1,6 @@
 ---
 import { NAV_ITEMS, socialLinks } from '../../lib/site';
+import SocialLink from '../ui/SocialLink.astro';
 import type { Profile } from '../../lib/db/schema';
 
 interface Props {
@@ -30,17 +31,7 @@ const year = new Date().getUTCFullYear();
             <ul class="mt-5 flex flex-wrap gap-2">
               {socials.map((social) => (
                 <li>
-                  <a
-                    href={social.href}
-                    class="chip transition-colors hover:border-line-strong hover:text-ink"
-                    rel={social.href.startsWith('mailto:') ? undefined : 'me noopener noreferrer'}
-                    target={social.href.startsWith('mailto:') ? undefined : '_blank'}
-                  >
-                    {social.label}
-                    {!social.href.startsWith('mailto:') && (
-                      <span class="sr-only">(opens in a new tab)</span>
-                    )}
-                  </a>
+                  <SocialLink brand={social.brand} label={social.label} href={social.href} />
                 </li>
               ))}
             </ul>
