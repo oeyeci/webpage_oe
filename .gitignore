@@ -28,6 +28,11 @@ seed/seed.sql
 # The original project brief — not source.
 prompt.md
 
+# Working files for the portrait upload. The real asset lives in R2, not git.
+portrait-source.jpg
+portrait*.webp
+*.crdownload
+
 # backups
 backups/
 

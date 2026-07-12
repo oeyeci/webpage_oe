@@ -31,7 +31,7 @@
     {
       "binding": "DB",
       "database_name": "ondereyecioglu-db",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "985e4fa3-b14c-4f7e-a43e-b8f77d015ec6",
       "migrations_dir": "migrations"
     }
   ],
@@ -52,7 +52,7 @@
   "kv_namespaces": [
     {
       "binding": "KV",
-      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+      "id": "6551818681c746f3a89e035ccfdd3e70"
     }
   ],
 
