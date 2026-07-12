@@ -17,6 +17,25 @@
   // @cloudflare/vite-plugin — declaring them here would point at build
   // artefacts that do not exist until after the first build.
 
+  /**
+   * Custom domains. Wrangler provisions the DNS record and the TLS certificate
+   * on deploy — the zone must already be active on this Cloudflare account.
+   *
+   * `PUBLIC_SITE_URL` below must match the apex, because it drives canonical
+   * URLs, the sitemap, the RSS feed and the JSON-LD. A mismatch quietly poisons
+   * all four.
+   */
+  "routes": [
+    { "pattern": "ondereyecioglu.com", "custom_domain": true },
+    // Bound so the Worker can 301 it to the apex (see src/middleware.ts).
+    { "pattern": "www.ondereyecioglu.com", "custom_domain": true }
+  ],
+
+  // The site has a real domain. Leaving `*.workers.dev` enabled would publish
+  // the whole thing at a second, indexable address.
+  "workers_dev": false,
+  "preview_urls": false,
+
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1

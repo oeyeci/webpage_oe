@@ -53,6 +53,25 @@ const SECURITY_HEADERS: Record<string, string> = {
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const url = new URL(context.request.url);
+
+  /**
+   * Canonical host: `www` permanently redirects to the apex.
+   *
+   * Both hostnames are bound to this Worker as custom domains, so without this
+   * the entire site is reachable at two addresses. The `<link rel="canonical">`
+   * tag already points search engines at the apex, but a canonical tag is a
+   * *hint*; a 301 is an instruction. It also stops session cookies from being
+   * scoped to a host the rest of the site never uses.
+   *
+   * Runs before anything else — there is no point resolving a session for a
+   * request we are about to redirect.
+   */
+  if (url.hostname.startsWith('www.')) {
+    const canonical = new URL(url);
+    canonical.hostname = url.hostname.slice(4);
+    return context.redirect(canonical.toString(), 301);
+  }
+
   const isAdminArea = url.pathname.startsWith('/admin');
   const isAdminApi = url.pathname.startsWith('/api/admin');
 
