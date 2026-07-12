@@ -193,6 +193,25 @@ orphaned entries are never looked up again and fall out on their own TTL.
 One KV write invalidates the entire site, globally, with no purge API, no fan-out, and no per-URL
 bookkeeping.
 
+**The response we return must not be independently cacheable.** This is the subtle half, and I got
+it wrong the first time. Cloudflare's own CDN caches by **URL** and knows nothing about our version
+key — so sending it `s-maxage=3600` meant it happily served a stale page for an hour after an edit,
+silently defeating the entire invalidation scheme above. The fix is two different policies on the
+same render:
+
+```
+the copy we store   →  public, s-maxage=3600            (lives at the edge)
+the copy we return  →  public, max-age=0, must-revalidate  (nobody else may hold it)
+```
+
+Every request therefore reaches the Worker, where our versioned cache answers it from the same edge
+PoP at the same speed. We keep the performance *and* we keep instant invalidation.
+
+**`/media/*` is exempt.** Those objects are content-addressed — the R2 key carries a random suffix,
+so a re-upload is a new URL — which makes them genuinely immutable and safe to cache forever
+(`max-age=31536000, immutable`). Routing them through the versioned cache would drag every image
+request back to the Worker for nothing.
+
 **Never cached:** anything for a signed-in user. Writing a personalised response into a *shared*
 cache is how one visitor gets served another's page, so authentication short-circuits the cache
 entirely rather than trying to vary on it.
@@ -212,10 +231,21 @@ entirely rather than trying to vary on it.
 
 ### Authentication
 
-- **PBKDF2-SHA256, 600,000 iterations** (the current OWASP floor). bcrypt/argon2 need native or WASM
-  bindings the Workers runtime does not provide; PBKDF2 *is* in Web Crypto. Parameters travel with
-  the hash (`pbkdf2$600000$salt$hash`), so they can be raised later without invalidating passwords —
-  and `needsRehash()` upgrades them transparently on next login.
+- **PBKDF2-SHA256, 100,000 iterations.** bcrypt/argon2 need native or WASM bindings the Workers
+  runtime does not provide; PBKDF2 *is* in Web Crypto.
+
+  100,000 is **not a preference — it is workerd's hard ceiling.** OWASP's floor is 600,000, and
+  workerd rejects it outright:
+
+  > `NotSupportedError: Pbkdf2 failed: iteration counts above 100000 are not supported`
+
+  Node's Web Crypto has no such cap, so 600,000 hashed fine locally and then **threw a 500 on every
+  production login**. The gap to OWASP is covered by controls that are load-bearing rather than
+  decorative: rate limiting (8 attempts / 15 min / IP), a 12-character minimum across 3 character
+  classes, and a per-password random salt so a stolen hash cannot be attacked in bulk.
+
+  Parameters travel with the hash (`pbkdf2$100000$salt$hash`), so the count can be raised the day
+  workerd lifts the cap; `needsRehash()` then upgrades accounts transparently on next login.
 - **HS256 JWT in an HttpOnly cookie**, *plus* a server-side session row. Both must hold. That second
   check is what makes "sign out everywhere" and account deactivation take effect **immediately**
   rather than whenever the token happens to expire.

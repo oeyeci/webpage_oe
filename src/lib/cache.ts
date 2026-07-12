@@ -61,22 +61,36 @@ export function cacheKeyFor(request: Request, version: number): Request {
 }
 
 export interface CacheOptions {
-  /** How long the edge may serve this response, in seconds. */
+  /** How long our own versioned cache entry may live, in seconds. */
   sMaxAge?: number;
-  /** How long a browser may reuse it, in seconds. */
-  maxAge?: number;
-  /** Serve stale content while revalidating in the background. */
-  staleWhileRevalidate?: number;
 }
 
-/** Standard cache headers for a public, versioned page. */
-export function cacheHeaders(options: CacheOptions = {}): Record<string, string> {
-  const { sMaxAge = 3600, maxAge = 0, staleWhileRevalidate = 86_400 } = options;
-  return {
-    'Cache-Control': `public, max-age=${maxAge}, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
-    Vary: 'Accept-Encoding',
-  };
+/**
+ * The `Cache-Control` written onto the copy we store in *our* cache.
+ *
+ * Cloudflare's Cache API derives an entry's TTL from the response's
+ * `Cache-Control`, so the stored copy needs a real `s-maxage`.
+ */
+function storedCacheControl(sMaxAge: number): string {
+  return `public, s-maxage=${sMaxAge}`;
 }
+
+/**
+ * The `Cache-Control` we send to the visitor — and, crucially, to Cloudflare's
+ * own CDN.
+ *
+ * This must NOT be independently cacheable, and getting that wrong is subtle.
+ * We invalidate content by changing our cache *key* (the version baked into it
+ * by `cacheKeyFor`). Cloudflare's CDN, however, caches by URL and knows nothing
+ * about that version — so if we hand it `s-maxage=3600`, it will happily serve
+ * a stale page for an hour after an edit, completely bypassing the
+ * invalidation scheme above.
+ *
+ * `max-age=0, must-revalidate` means every request reaches the Worker, where
+ * our versioned cache answers it from the same edge location at the same speed.
+ * We keep the performance and we keep instant invalidation.
+ */
+const CLIENT_CACHE_CONTROL = 'public, max-age=0, must-revalidate';
 
 /**
  * Wraps a page render with edge caching.
@@ -99,6 +113,8 @@ export async function withEdgeCache(
     return response;
   }
 
+  const { sMaxAge = 3600 } = options;
+
   const version = await getContentVersion(kv);
   const key = cacheKeyFor(request, version);
   const cache = (caches as unknown as { default: Cache }).default;
@@ -106,6 +122,7 @@ export async function withEdgeCache(
   const hit = await cache.match(key);
   if (hit) {
     const response = new Response(hit.body, hit);
+    response.headers.set('Cache-Control', CLIENT_CACHE_CONTROL);
     response.headers.set('X-Cache', 'HIT');
     return response;
   }
@@ -113,13 +130,25 @@ export async function withEdgeCache(
   const response = await render();
 
   if (response.status === 200) {
-    for (const [name, value] of Object.entries(cacheHeaders(options))) {
-      response.headers.set(name, value);
-    }
-    response.headers.set('X-Cache', 'MISS');
+    // Two copies, two different cache policies:
+    //
+    //   • the one we store  → `s-maxage`, so it actually lives at the edge
+    //   • the one we return → must-revalidate, so no cache *outside* our
+    //                         control can hold a version it cannot invalidate
+    //
+    // `response.clone()` tees the body stream; one branch feeds the cache write
+    // and the other is streamed to the visitor.
+    const stored = new Response(response.clone().body, response);
+    stored.headers.set('Cache-Control', storedCacheControl(sMaxAge));
+    stored.headers.set('Vary', 'Accept-Encoding');
+
     // Write to the cache without making the visitor wait for it.
-    ctx.waitUntil(cache.put(key, response.clone()));
+    ctx.waitUntil(cache.put(key, stored));
   }
+
+  response.headers.set('Cache-Control', CLIENT_CACHE_CONTROL);
+  response.headers.set('Vary', 'Accept-Encoding');
+  response.headers.set('X-Cache', 'MISS');
 
   return response;
 }

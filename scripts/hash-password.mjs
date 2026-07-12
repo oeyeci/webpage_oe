@@ -11,15 +11,15 @@
  *     --command "UPDATE users SET password_hash = '<hash>', must_change_password = 0 \
  *                WHERE email = 'you@example.com';"
  *
- * Uses the same parameters as src/lib/auth/password.ts (PBKDF2-SHA256, 600,000
- * iterations — the current OWASP floor). Deliberately duplicated here rather
- * than imported so this script has zero build step and works on a bare
- * checkout.
+ * Uses the same parameters as src/lib/auth/password.ts (PBKDF2-SHA256, 100,000
+ * iterations — workerd's hard ceiling; it rejects anything higher). Deliberately
+ * duplicated here rather than imported so this script has zero build step and
+ * works on a bare checkout. Keep the two in sync.
  */
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout, argv, exit } from 'node:process';
 
-const ITERATIONS = 600_000;
+const ITERATIONS = 100_000; // workerd hard-caps PBKDF2 at 100k — see src/lib/auth/password.ts
 const SALT_BYTES = 16;
 const KEY_BITS = 256;
 

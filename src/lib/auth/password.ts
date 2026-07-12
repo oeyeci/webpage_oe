@@ -1,19 +1,41 @@
 /**
  * Password hashing for the Workers runtime.
  *
- * bcrypt/argon2 need native or WASM bindings that the Workers runtime does not
- * provide out of the box, so we use PBKDF2-SHA256 — which *is* implemented by
- * Web Crypto and is an accepted KDF (NIST SP 800-132, OWASP Password Storage
- * Cheat Sheet). OWASP's current floor for PBKDF2-HMAC-SHA256 is 600,000
- * iterations; we use that.
+ * bcrypt/argon2 need native or WASM bindings the Workers runtime does not
+ * provide, so we use PBKDF2-SHA256 — implemented by Web Crypto and an accepted
+ * KDF (NIST SP 800-132, OWASP Password Storage Cheat Sheet).
+ *
+ * ─── On the iteration count ───────────────────────────────────────────────
+ *
+ * OWASP's current floor for PBKDF2-HMAC-SHA256 is 600,000 iterations. **We
+ * cannot use it.** workerd hard-caps PBKDF2 at 100,000 and rejects anything
+ * higher outright:
+ *
+ *   NotSupportedError: Pbkdf2 failed: iteration counts above 100000 are not
+ *   supported (requested 600000)
+ *
+ * Node's Web Crypto has no such cap, so a higher count works locally and then
+ * throws a 500 on every login in production — which is exactly what happened.
+ * 100,000 is therefore not a preference, it is the platform ceiling.
+ *
+ * The gap to OWASP's recommendation is covered by compensating controls, and
+ * they are load-bearing rather than decorative:
+ *
+ *   • Rate limiting: 8 attempts per 15 minutes per IP (lib/security/rate-limit)
+ *   • A 12-character minimum with 3 character classes (assessPasswordStrength)
+ *   • Per-password random salts, so a stolen hash cannot be attacked in bulk
  *
  * Serialised format:  pbkdf2$<iterations>$<base64 salt>$<base64 hash>
- * The parameters travel with the hash, so iteration counts can be raised later
- * without invalidating existing passwords.
+ * The parameters travel with the hash, so this can be raised without
+ * invalidating existing passwords the day workerd lifts the cap.
  */
 
 const ALGORITHM = 'pbkdf2';
-const ITERATIONS = 600_000;
+
+/** workerd rejects anything above this. Not a tuning knob — a hard limit. */
+const MAX_SUPPORTED_ITERATIONS = 100_000;
+
+const ITERATIONS = MAX_SUPPORTED_ITERATIONS;
 const SALT_BYTES = 16;
 const KEY_BITS = 256;
 
@@ -78,6 +100,20 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const iterations = Number(parts[1]);
   if (!Number.isInteger(iterations) || iterations < 1_000) return false;
 
+  /**
+   * A hash written by a runtime without workerd's cap (Node, or an older build
+   * of this app) would make `deriveBits` throw, turning every login into a 500.
+   * Fail closed instead: the account cannot authenticate until its password is
+   * re-hashed, which is a locked door rather than a broken one.
+   */
+  if (iterations > MAX_SUPPORTED_ITERATIONS) {
+    console.error(
+      `Stored password hash uses ${iterations} PBKDF2 iterations; this runtime supports at most ` +
+        `${MAX_SUPPORTED_ITERATIONS}. Re-hash the password with \`npm run admin:password\`.`,
+    );
+    return false;
+  }
+
   let salt: Uint8Array;
   let expected: Uint8Array;
   try {
@@ -100,13 +136,16 @@ export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 /**
- * True when a hash was produced with weaker parameters than we now require,
- * which means it should be transparently re-hashed on next successful login.
+ * True when a hash should be transparently re-hashed on next successful login:
+ * either it is weaker than we now require, or it uses an iteration count this
+ * runtime cannot even evaluate.
  */
 export function needsRehash(stored: string): boolean {
   const parts = stored.split('$');
   if (parts.length !== 4 || parts[0] !== ALGORITHM) return true;
-  return Number(parts[1]) < ITERATIONS;
+
+  const iterations = Number(parts[1]);
+  return iterations < ITERATIONS || iterations > MAX_SUPPORTED_ITERATIONS;
 }
 
 /** Rejects the passwords that show up first in every credential-stuffing list. */

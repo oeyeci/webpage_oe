@@ -222,9 +222,36 @@ Then sign in at `/admin/login` and confirm the dashboard loads.
 
 ## Troubleshooting
 
+**Every HTML page returns the 15-byte string `[object Object]` with a 200 status**
+(API routes like `/sitemap.xml` still work.)
+
+Astro chose its async-iterable streaming path because it thinks it is running on Node:
+
+```js
+// astro/dist/runtime/server/render/util.js
+const isNode = typeof process !== 'undefined'
+            && Object.prototype.toString.call(process) === '[object process]';
+```
+
+`nodejs_compat` — which this project requires — gives workerd a `process` global that satisfies that
+check. workerd's `Response` does not accept an async iterable as a body, so it coerces it with
+`String()`. The `workerdHtmlStreamingFix` Vite plugin in `astro.config.mjs` pins `isNode` to `false`,
+forcing the `ReadableStream` path. **It throws at build time if Astro moves that constant**, so an
+upgrade fails loudly instead of silently shipping a blank site.
+
+**Login returns 500 with `Pbkdf2 failed: iteration counts above 100000 are not supported`**
+workerd hard-caps PBKDF2 at 100,000 iterations. Node's Web Crypto does not, so a higher count works
+locally and dies in production. `src/lib/auth/password.ts` is pinned to 100,000; if you raise it,
+every login breaks.
+
 **`The provided Wrangler config main field … doesn't point to an existing file`**
 You are deploying with the root `wrangler.jsonc`. Use `-c dist/server/wrangler.json`, or just
-`npm run deploy`.
+`npm run deploy`. Cloudflare **Workers Builds** needs these two commands set in the dashboard:
+
+| Field | Value |
+| --- | --- |
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy -c dist/server/wrangler.json` |
 
 **`JWT_SECRET must be set and at least 32 characters long`**
 The secret is missing or too short. `openssl rand -base64 48 | npx wrangler secret put JWT_SECRET`.

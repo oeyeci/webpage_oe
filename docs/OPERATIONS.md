@@ -220,7 +220,7 @@ suspect the secret has leaked.
 
 | Control | Where |
 | --- | --- |
-| PBKDF2-SHA256, 600k iterations | `src/lib/auth/password.ts` |
+| PBKDF2-SHA256, 100k iterations (workerd's ceiling) | `src/lib/auth/password.ts` |
 | HS256 JWT + server-side session (revocable) | `src/lib/auth/session.ts` |
 | Rate limiting (login, contact) | `src/lib/security/rate-limit.ts` |
 | Turnstile (fails closed) | `src/lib/security/turnstile.ts` |

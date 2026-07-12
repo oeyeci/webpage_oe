@@ -107,6 +107,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.request.method === 'GET' &&
     !isAdminArea &&
     !url.pathname.startsWith('/api/') &&
+    // `/media/*` is excluded on purpose. Those objects are content-addressed —
+    // the R2 key carries a random suffix, so a re-upload is a *new* URL — which
+    // means they are genuinely immutable and the route serves them with
+    // `max-age=31536000, immutable`. Routing them through the versioned cache
+    // would overwrite that with `must-revalidate` and drag every image request
+    // back to the Worker for no benefit.
+    !url.pathname.startsWith('/media/') &&
     !context.locals.user;
 
   const render = async () => {
@@ -138,9 +145,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
     env.KV,
     false,
     render,
-    // A short edge TTL with a long stale-while-revalidate: a visitor is never
-    // made to wait for a re-render, and the version key means "stale" content
-    // can only ever be at most one publish behind for a few seconds.
-    { sMaxAge: 3600, maxAge: 0, staleWhileRevalidate: 86_400 },
+    // How long our *own* versioned entry may live at the edge. It is safe to
+    // make this long: any content edit bumps the version, which changes the
+    // cache key and orphans every existing entry immediately.
+    { sMaxAge: 3600 },
   );
 });
