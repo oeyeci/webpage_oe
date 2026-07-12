@@ -28,6 +28,10 @@ seed/seed.sql
 # The original project brief — not source.
 prompt.md
 
+# Session record. Contains the admin password in plain text, so it must never
+# reach the public repository.
+PROJECT-LOG.md
+
 # Working files for the portrait upload. The real asset lives in R2, not git.
 portrait-source.jpg
 portrait*.webp
